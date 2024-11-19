@@ -1,0 +1,6 @@
+[requires]
+asio/1.30.2
+
+[generators]
+CMakeDeps
+CMakeToolchain
