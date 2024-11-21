@@ -18,8 +18,8 @@
                 "CMAKE_POLICY_DEFAULT_CMP0091": "NEW",
                 "CMAKE_BUILD_TYPE": "Release"
             },
-            "toolchainFile": "conan_toolchain.cmake",
-            "binaryDir": "/Users/guillaume/Epitech/teck3/Epitech-RType/build"
+            "toolchainFile": "generators/conan_toolchain.cmake",
+            "binaryDir": "/Users/guillaume/Epitech/teck3/Epitech-RType/build/build/Release"
         }
     ],
     "buildPresets": [

@@ -1,0 +1,1 @@
+. "/Users/guillaume/Epitech/teck3/Epitech-RType/build/build/Release/generators/deactivate_conanrunenv-release-armv8.sh"

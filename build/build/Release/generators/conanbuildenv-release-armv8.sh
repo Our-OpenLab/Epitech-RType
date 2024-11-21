@@ -1,4 +1,4 @@
-script_folder="/Users/guillaume/Epitech/teck3/Epitech-RType/build"
+script_folder="/Users/guillaume/Epitech/teck3/Epitech-RType/build/build/Release/generators"
 echo "echo Restoring environment" > "$script_folder/deactivate_conanbuildenv-release-armv8.sh"
 for v in 
 do

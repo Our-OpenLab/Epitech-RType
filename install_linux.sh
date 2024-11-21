@@ -33,7 +33,7 @@ fi
 BUILD_DIR="build"
 echo -e "${YELLOW}Creating the build directory...${NC}"
 if [ ! -d "$BUILD_DIR" ]; then
-    mkdir "$BUILD_DIR"
+#    mkdir "$BUILD_DIR"
     echo -e "${GREEN}SUCCESS: Build directory created.${NC}"
 else
     echo -e "${GREEN}SUCCESS: Build directory already exists.${NC}"
@@ -51,7 +51,7 @@ fi
 # Step 5: Configure the project with CMake
 echo -e "${YELLOW}Configuring the project with CMake...${NC}"
 cd "$BUILD_DIR"
-if cmake .. -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release; then
+if cmake .. -DCMAKE_TOOLCHAIN_FILE=build/Release/generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release; then
     echo -e "${GREEN}SUCCESS: CMake configuration completed.${NC}"
 else
     echo -e "${RED}ERROR: CMake configuration failed.${NC}"

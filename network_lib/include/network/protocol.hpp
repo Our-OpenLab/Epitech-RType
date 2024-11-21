@@ -1,4 +1,3 @@
-
 #ifndef PROTOCOL_HPP_
 #define PROTOCOL_HPP_
 
@@ -7,11 +6,10 @@
 #include <iostream>
 
 namespace network {
-
-    enum class PacketType : std::uint32_t {
-        Connect = 0x01,
-        Disconnect = 0x02,
-        Heartbeat = 0x03,
+enum class PacketType : std::uint32_t {
+  Connect = 0x01,
+  Disconnect = 0x02,
+  Heartbeat = 0x03,
 
         StartGame = 0x10,
         EndGame = 0x11,
@@ -29,17 +27,19 @@ namespace network {
     };
 
     struct Header {
-        PacketType type {};
-        std::uint32_t size;
+  PacketType type{};
+      std::uint32_t size;
     };
 
     struct Packet {
-        Header header {};
-        std::vector<std::uint8_t> body;
+      Header header{};
+      std::vector<std::uint8_t> body;
 
-        [[nodiscard]] std::size_t size() const { return sizeof(header) + body.size(); }
+      [[nodiscard]] std::size_t size() const {
+        return sizeof(header) + body.size();
+      }
 
-        template <typename T>
+      template <typename T>
         void push(const T& data)
         {
             static_assert(std::is_trivially_copyable_v<T>, "DataType must be trivially copyable");
@@ -57,7 +57,8 @@ namespace network {
             static_assert(std::is_trivially_copyable_v<T>, "DataType must be trivially copyable");
 
             if (body.size() < sizeof(T)) {
-                throw std::out_of_range("extractFromBody: Not enough data in body");
+              throw std::out_of_range(
+                  "extractFromBody: Not enough data in body");
             }
 
             const size_t remainingSize = body.size() - sizeof(T);
@@ -74,8 +75,8 @@ namespace network {
     inline std::ostream& operator<<(std::ostream& os, const Packet& packet)
     {
         os << "Type: " << static_cast<uint32_t>(packet.header.type)
-           << "Size: " << packet.header.size;
-        return os;
+         << "Size: " << packet.header.size;
+      return os;
     }
 
     class Connection;
@@ -85,10 +86,13 @@ namespace network {
         std::shared_ptr<Connection> connection;
         Packet packet;
 
-        public:
-            OwnedPacket(const std::shared_ptr<Connection>& connection, Packet packet): connection(connection), packet(std::move(packet)) {}
+       public:
+        OwnedPacket(const std::shared_ptr<Connection>& connection,
+                    Packet packet)
+            : connection(connection), packet(std::move(packet)) {}
 
-        friend std::ostream& operator<<(std::ostream& os, const OwnedPacket& packet)
+        friend std::ostream& operator<<(std::ostream& os,
+                                        const OwnedPacket& packet)
         {
             os << packet.packet;
             return os;

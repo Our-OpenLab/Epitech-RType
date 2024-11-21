@@ -1,6 +1,11 @@
 #include <iostream>
 #include <network/protocol.hpp>
 #include <network/concurrent_queue.hpp>
+#include <network/connection.hpp>
+#include <network/client_connection.hpp>
+#include <network/server_connection.hpp>
+#include <network/client.hpp>
+#include <network/server.hpp>
 
 int main() {
 

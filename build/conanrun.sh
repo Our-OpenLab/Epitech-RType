@@ -1,1 +1,0 @@
-. "/Users/guillaume/Epitech/teck3/Epitech-RType/build/conanrunenv-release-armv8.sh"

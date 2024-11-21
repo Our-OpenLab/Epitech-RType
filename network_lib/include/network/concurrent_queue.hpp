@@ -8,62 +8,80 @@
 
 namespace network {
 
-    template<typename T>
-    class ConcurentQueue final
-    {
-      public:
+template <typename T>
+class ConcurrentQueue final {
+ public:
+  ConcurrentQueue() = default;
+  ConcurrentQueue(const ConcurrentQueue&) = delete;
+  ConcurrentQueue& operator=(const ConcurrentQueue&) = delete;
 
-        ConcurentQueue() = default;
-        ConcurentQueue(const ConcurentQueue&) = delete;
-        ConcurentQueue& operator=(const ConcurentQueue&) = delete;
+  ~ConcurrentQueue() = default;
 
-        ~ConcurentQueue() = default;
+  /*
+  std::optional<std::reference_wrapper<const T>> front() const {
+      std::lock_guard lock(mutex_);
+      if (queue_.empty()) {
+          return std::nullopt;
+      }
+      return std::cref(queue_.front());
+  }
+  */
 
-        unsigned long size() const {
-            std::lock_guard lock(mutex_);
-            return queue_.size();
-        }
+  const T& front() {
+    std::lock_guard lock(mutex_);
+    return queue_.front();
+  }
 
-        std::optional<T> pop() {
-            std::lock_guard lock(mutex_);
-            if (queue_.empty()) {
-                return std::nullopt;
-            }
-            T tmp = queue_.front();
-            queue_.pop();
-            return tmp;
-        }
+  unsigned long size() const {
+    std::lock_guard lock(mutex_);
+    return queue_.size();
+  }
 
-        bool try_pop(T& value) {
-            std::lock_guard lock(mutex_);
-            if (queue_.empty()) {
-                return false;
-            }
-            value = queue_.front();
-            queue_.pop();
-            return true;
-        }
+  std::optional<T> pop() {
+    std::lock_guard lock(mutex_);
+    if (queue_.empty()) {
+      return std::nullopt;
+    }
+    T tmp = std::move(queue_.front());
+    queue_.pop();
+    return tmp;
+  }
 
-        void push(const T &item) {
-            std::lock_guard lock(mutex_);
-            queue_.push(item);
-        }
+  bool try_pop(T& value) {
+    std::lock_guard lock(mutex_);
+    if (queue_.empty()) {
+      return false;
+    }
+    value = std::move(queue_.front());
+    queue_.pop();
+    return true;
+  }
 
-        void clear()
-        {
-            std::lock_guard lock(mutex_);
-            queue_.clear();
-        }
+  void push(const T& item) {
+    std::lock_guard lock(mutex_);
+    queue_.push(item);
+  }
 
-      private:
-        std::queue<T> queue_{};
-        mutable std::mutex mutex_;
+  void push(T&& item) {
+    std::lock_guard lock(mutex_);
+    queue_.push(std::move(item));
+  }
 
-        [[nodiscard]] bool empty() const {
-            return queue_.empty();
-        }
-    };
+  void clear() {
+    std::lock_guard lock(mutex_);
+    queue_.clear();
+  }
 
-}
+  [[nodiscard]] bool empty() const {
+    std::lock_guard lock(mutex_);
+    return queue_.empty();
+  }
 
-#endif // CONCURRENT_QUEUE_HPP_
+ private:
+  std::queue<T> queue_{};
+  mutable std::mutex mutex_;
+};
+
+}  // namespace network
+
+#endif  // CONCURRENT_QUEUE_HPP_
