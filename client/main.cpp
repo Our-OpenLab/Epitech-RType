@@ -15,10 +15,35 @@ int main() {
     return 1;
   }
 
+  SDL_Window* window = SDL_CreateWindow(
+      "Network Client",
+      SDL_WINDOWPOS_CENTERED,
+      SDL_WINDOWPOS_CENTERED,
+      640,
+      480,
+      SDL_WINDOW_SHOWN
+  );
+
+  if (!window) {
+    std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
+    SDL_Quit();
+    return 1;
+  }
+
+  SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+  if (!renderer) {
+    std::cerr << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+    return 1;
+  }
+
   network::Client client;
 
   if (!client.connect("127.0.0.1", "4242")) {
     std::cerr << "Failed to connect to the server!" << std::endl;
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
     SDL_Quit();
     return 1;
   }
@@ -138,9 +163,16 @@ int main() {
       quit = true;
     }
 
-    SDL_Delay(16); // Limiter à ~60 FPS
+    SDL_Delay(16);
+
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+    SDL_RenderPresent(renderer);
   }
 
+  SDL_DestroyRenderer(renderer);
+  SDL_DestroyWindow(window);
+  SDL_Quit();
 
   return 0;
 }
