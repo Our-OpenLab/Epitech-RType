@@ -16,13 +16,10 @@ set(HEADERS
         include/network/client.hpp
 )
 
-#add_library(network_lib STATIC ${SOURCES} ${HEADERS})
 add_library(${PROJECT_NAME} INTERFACE)
 
-#target_include_directories(network_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 find_package(asio REQUIRED)
 
-#target_link_libraries(network_lib PRIVATE asio::asio)
 target_link_libraries(${PROJECT_NAME} INTERFACE asio::asio)
