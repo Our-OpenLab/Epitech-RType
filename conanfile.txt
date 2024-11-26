@@ -6,5 +6,8 @@ sdl/2.30.9
 CMakeDeps
 CMakeToolchain
 
+[options]
+libalsa/*:shared=True
+
 [layout]
 cmake_layout
