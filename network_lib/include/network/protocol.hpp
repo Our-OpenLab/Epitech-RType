@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
+#include <memory>
+#include <cstring>
 
 namespace network {
 enum class PacketType : std::uint32_t {
