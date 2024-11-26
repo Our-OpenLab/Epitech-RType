@@ -2,9 +2,10 @@
 #define SERVER_CONNECTION_HPP_
 
 #include "connection.hpp"
+#include "protocol.hpp"
 
 namespace network {
-class ServerConnection : public Connection {
+class ServerConnection : public Connection, public std::enable_shared_from_this<ServerConnection> {
  public:
   ServerConnection(asio::io_context& io_context, asio::ip::tcp::socket socket,
                    ConcurrentQueue<OwnedPacket>& received_queue,

@@ -3,18 +3,18 @@
 
 #include <asio.hpp>
 
+#include "protocol.hpp"
 #include "concurrent_queue.hpp"
 #include "connection_interface.hpp"
 
 namespace network {
-class Connection : public ConnectionInterface,
-                   public std::enable_shared_from_this<Connection> {
+class Connection : public ConnectionInterface {
  public:
   explicit Connection(asio::io_context& io_context,
                       asio::ip::tcp::socket socket)
       : io_context_(io_context), socket_(std::move(socket)) {}
 
-  ~Connection() override = 0;
+  ~Connection() override = default;
 
   void disconnect() override {
     asio::post(io_context_, [this]() {
@@ -54,8 +54,8 @@ class Connection : public ConnectionInterface,
   ConcurrentQueue<Packet> send_queue_{};
   Packet incoming_packet_;
 
-  virtual void read_body() = 0;
   virtual void read_header() = 0;
+  virtual void read_body() = 0;
   virtual void write_header() = 0;
   virtual void write_body(Packet current_packet) = 0;
 

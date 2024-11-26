@@ -8,12 +8,12 @@ class ConnectionInterface {
  public:
   virtual ~ConnectionInterface() = default;
 
-  virtual bool send(const Packet& packet) = 0;
-  virtual bool send(Packet&& packet) = 0;
-
   [[nodiscard]] virtual bool is_connected() const = 0;
 
   virtual void disconnect() = 0;
+
+  virtual bool send(const Packet& packet) = 0;
+  virtual bool send(Packet&& packet) = 0;
 };
 }  // namespace network
 

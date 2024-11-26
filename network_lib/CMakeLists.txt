@@ -7,26 +7,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-set(SOURCES
-        src/connection.cpp
-#        src/protocol.cpp
-#        src/serializer.cpp
-#        src/udp_client.cpp
-#        src/udp_server.cpp
-#        src/utils.cpp
-)
-
 set(HEADERS
         include/network/protocol.hpp
         include/network/concurrent_queue.hpp
         include/network/client_connection.hpp
         include/network/server_connection.hpp
-        include/network/server.hpp
+        include/network/network_server.hpp
         include/network/client.hpp
-#        include/network/serializer.hpp
-#        include/network/udp_client.hpp
-#        include/network/udp_server.hpp
-#        include/network/utils.hpp
 )
 
 #add_library(network_lib STATIC ${SOURCES} ${HEADERS})

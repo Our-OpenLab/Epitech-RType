@@ -1,5 +1,5 @@
-#ifndef SERVER_H_
-#define SERVER_H_
+#ifndef NETWORK_SERVER_H_
+#define NETWORK_SERVER_H_
 
 #include <asio/io_context.hpp>
 #include <asio/ip/tcp.hpp>
@@ -11,27 +11,28 @@
 #include <vector>
 
 #include "concurrent_queue.hpp"
-#include "protocol.hpp"
 #include "server_connection.hpp"
 
 namespace network {
-class Server {
+class NetworkServer {
  public:
-  explicit Server(const uint16_t port)
+  explicit NetworkServer(const uint16_t port)
       : acceptor_(io_context_,
                   asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)) {}
 
-  virtual ~Server() { stop(); }
+  virtual ~NetworkServer() { stop(); }
 
-  void start() {
+  bool start() {
     try {
       accept();
       context_thread_ = std::thread([this]() { io_context_.run(); });
       std::cout << "[Server][INFO] Started successfully on port "
                 << acceptor_.local_endpoint().port() << std::endl;
+      return true;
     } catch (const std::exception& e) {
       std::cerr << "[Server][ERROR] Exception during start: " << e.what()
                 << std::endl;
+      return false;
     }
   }
 
@@ -47,7 +48,6 @@ class Server {
 
   template <typename T>
   void broadcast(T&& packet) {
-    // std::lock_guard<std::mutex> lock(connections_mutex_);
     std::erase_if(connections_, [this, &packet](const std::shared_ptr<ServerConnection>& connection) {
         if (connection && connection->is_connected()) {
             connection->send(std::forward<T>(packet));
@@ -60,7 +60,6 @@ class Server {
 
   template <typename T>
   bool send_to(uint32_t connection_id, T&& packet) {
-    // std::lock_guard<std::mutex> lock(connections_mutex_);
     bool sent = false;
 
     std::erase_if(connections_,
@@ -70,10 +69,9 @@ class Server {
                         conn->send(std::forward<T>(packet));
                         sent = true;
                         return false;
-                      } else {
-                        on_client_disconnect(conn);
-                        return true;
                       }
+                      on_client_disconnect(conn);
+                      return true;
                     }
                     return false;
                   });
@@ -86,7 +84,6 @@ class Server {
   }
 
   bool disconnect_client(uint32_t connection_id) {
-    // std::lock_guard<std::mutex> lock(connections_mutex_);
     const auto it =
         std::ranges::find_if(connections_, [connection_id](const auto& conn) {
           return conn && conn->get_id() == connection_id;
@@ -105,8 +102,9 @@ class Server {
     return false;
   }
 
+  std::optional<OwnedPacket> pop_message() { return received_queue_.pop(); }
+
   [[nodiscard]] size_t get_connection_count() const {
-    // std::lock_guard<std::mutex> lock(connections_mutex_);
     return connections_.size();
   }
 
@@ -145,7 +143,6 @@ class Server {
                 ++connection_id_counter_);
 
             if (on_client_connect(connection)) {
-              // std::lock_guard<std::mutex> lock(connections_mutex_);
               connections_.emplace_back(connection);
               std::cout << "[Server][INFO] Connection accepted with ID "
                         << connection->get_id() << std::endl;
@@ -166,7 +163,6 @@ class Server {
   }
 
   void disconnect_all_clients() {
-    // std::lock_guard<std::mutex> lock(connections_mutex_);
     for (const auto& connection : connections_) {
       if (connection && connection->is_connected()) {
         connection->disconnect();
@@ -183,10 +179,8 @@ class Server {
   std::thread context_thread_;
   asio::ip::tcp::acceptor acceptor_;
 
-  // mutable std::mutex connections_mutex_;
-
   uint32_t connection_id_counter_ = 0;
 };
 }  // namespace network
 
-#endif
+#endif //NETWORK_SERVER_H_

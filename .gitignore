@@ -128,3 +128,4 @@ fabric.properties
 ### Project template
 
 .clang-format
+build/

@@ -15,16 +15,18 @@
 namespace network {
 class Client {
 public:
-  Client() : io_context_(), received_queue_() {}
+  Client() = default;
 
-  ~Client() {}
+  ~Client() {
+    disconnect();
+  }
 
-  bool connect(const std::string& host, const std::string& port) {
+  bool connect(const std::string& host, const std::string& service) {
     try {
-      std::cout << "[Client][INFO] Attempting to connect to " << host << ":" << port << "..." << std::endl;
+      std::cout << "[Client][INFO] Attempting to connect to " << host << ":" << service << "..." << std::endl;
 
       asio::ip::tcp::resolver resolver(io_context_);
-      const auto endpoints = resolver.resolve(host, port);
+      const auto endpoints = resolver.resolve(host, service);
 
       connection_ = std::make_unique<ClientConnection>(io_context_, asio::ip::tcp::socket(io_context_), received_queue_);
 
@@ -36,7 +38,7 @@ public:
       context_thread_ = std::thread([this]() { io_context_.run(); });
 
       if (const bool is_connected = connection_future.get(); !is_connected) {
-        std::cerr << "[Client][ERROR] Failed to connect to " << host << ":" << port << std::endl;
+        std::cerr << "[Client][ERROR] Failed to connect to " << host << ":" << service << std::endl;
         io_context_.stop();
         if (context_thread_.joinable()) {
           context_thread_.join();

@@ -1,5 +1,6 @@
 [requires]
 asio/1.30.2
+sdl/2.30.9
 
 [generators]
 CMakeDeps
