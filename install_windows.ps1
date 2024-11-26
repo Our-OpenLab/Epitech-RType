@@ -39,10 +39,9 @@ if (-not (Test-Path $BUILD_DIR)) {
 
 # Step 4: Install dependencies with Conan
 Write-Host "${YELLOW}Installing dependencies with Conan...${NC}"
-try {
-    conan install . --output-folder=$BUILD_DIR --build=missing
+if (conan install . --output-folder=$BUILD_DIR --build=missing) {
     Write-Host "${GREEN}SUCCESS: Dependencies installed successfully.${NC}"
-} catch {
+} else {
     Write-Host "${RED}ERROR: Conan failed to install dependencies.${NC}"
     exit 1
 }
@@ -50,20 +49,18 @@ try {
 # Step 5: Configure the project with CMake
 Write-Host "${YELLOW}Configuring the project with CMake...${NC}"
 cd $BUILD_DIR
-try {
-    cmake .. -G "Visual Studio 15 2017" -DCMAKE_TOOLCHAIN_FILE="conan_toolchain.cmake"
+if (cmake .. -DCMAKE_TOOLCHAIN_FILE="build/Release/generators/conan_toolchain.cmake" -DCMAKE_BUILD_TYPE=Release) {
     Write-Host "${GREEN}SUCCESS: CMake configuration completed.${NC}"
-} catch {
+} else {
     Write-Host "${RED}ERROR: CMake configuration failed.${NC}"
     exit 1
 }
 
 # Step 6: Build the project
 Write-Host "${YELLOW}Building the project...${NC}"
-try {
-    cmake --build . --config Release
+if (cmake --build .) {
     Write-Host "${GREEN}SUCCESS: Project built successfully.${NC}"
-} catch {
+} else {
     Write-Host "${RED}ERROR: Build failed.${NC}"
     exit 1
 }
