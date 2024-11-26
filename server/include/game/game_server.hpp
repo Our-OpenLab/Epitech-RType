@@ -53,8 +53,9 @@ namespace game {
         process_packets(50, std::chrono::milliseconds(10));
 
         // Update game logic
-       // logic_.update(delta_time);
+        // logic_.update(delta_time);
 
+        next_tick_time += tick_duration;
         if (auto sleep_time = next_tick_time - std::chrono::steady_clock::now();
             sleep_time > std::chrono::milliseconds(0)) {
           std::this_thread::sleep_for(sleep_time);
