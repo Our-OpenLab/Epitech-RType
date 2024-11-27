@@ -8,7 +8,7 @@
 #include "AEntities.hpp"
 
 AEntities::AEntities(std::string name){
-    this->_components[name] = IComponent();
+    this->_components[name] = Component();
 }
 
 AEntities::~AEntities(){}

@@ -7,9 +7,8 @@
 
 #pragma once 
 
-#include "ISysteme.hpp"
 
-class ASysteme : public ISysteme {
+class ASysteme {
     public:
         ASysteme();
         ~ASysteme();

@@ -7,16 +7,15 @@
 
 #pragma once
 
-#include "IEntities.hpp"
-#include "Component/IComponent.hpp"
+#include "Component/Component.hpp"
 #include <vector>
 #include <string>
 #include <unordered_map>
 
-class AEntities : public IEntities {
+class AEntities {
     public:
         AEntities(std::string name);
         ~AEntities();
     private:
-        std::unordered_map<std::string, IComponent> _components;
+        std::unordered_map<std::string, Component> _components;
 };

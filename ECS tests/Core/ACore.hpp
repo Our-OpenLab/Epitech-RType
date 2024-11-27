@@ -7,16 +7,15 @@
 
 #pragma once
 
-#include "ICore.hpp"
-#include "Entities/IEntities.hpp"
-#include "Systeme/ISysteme.hpp"
+#include "Entities/AEntities.hpp"
+#include "Systeme/ASysteme.hpp"
 #include <vector>
 
-class ACore : public ICore {
+class ACore {
     public:
         ACore();
         ~ACore();
     private:
-        std::vector<IEntities> _entities;
-        std::vector<ISysteme> _systems;
+        std::vector<AEntities> _entities;
+        std::vector<ASysteme> _systems;
 };

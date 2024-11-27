@@ -7,9 +7,8 @@
 
 #pragma once
 
-#include "IComponent.hpp"
 
-class Component : public IComponent {
+class Component {
     public:
         Component();
         ~Component();
