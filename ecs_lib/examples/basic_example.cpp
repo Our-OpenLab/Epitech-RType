@@ -10,7 +10,7 @@ struct velocity {
 };
 
 int main() {
-  ecs::registry<position, velocity> reg;
+  ecs::Registry<position, velocity> reg;
 
   reg.register_component<position>();
   reg.register_component<velocity>();

@@ -4,6 +4,8 @@
 #include "protocol.hpp"
 
 namespace network {
+
+template <typename PacketType>
 class ConnectionInterface {
  public:
   virtual ~ConnectionInterface() = default;
@@ -12,8 +14,8 @@ class ConnectionInterface {
 
   virtual void disconnect() = 0;
 
-  virtual bool send(const Packet& packet) = 0;
-  virtual bool send(Packet&& packet) = 0;
+  virtual void send(const Packet<PacketType>& packet) = 0;
+  virtual void send(Packet<PacketType>&& packet) = 0;
 };
 }  // namespace network
 

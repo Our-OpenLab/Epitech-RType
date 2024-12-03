@@ -13,7 +13,7 @@ set(HEADERS
         include/network/client_connection.hpp
         include/network/server_connection.hpp
         include/network/network_server.hpp
-        include/network/client.hpp
+        include/network/network_client.hpp
 )
 
 add_library(${PROJECT_NAME} INTERFACE)

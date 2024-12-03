@@ -8,7 +8,7 @@
 namespace ecs {
 
 template <typename Component>
-class SparseArray {
+class SparseArray final {
  public:
   using value_type = std::optional<Component>;
   using reference_type = value_type&;
@@ -26,16 +26,16 @@ class SparseArray {
 
     Iterator(typename container_t::iterator current,
              typename container_t::iterator end)
-        : _current(current), _end(end) {
+        : current_(current), end_(end) {
       advance_to_valid();
     }
 
-    reference operator*() const { return _current->value(); }
+    reference operator*() const { return current_->value(); }
 
-    pointer operator->() const { return &(_current->value()); }
+    pointer operator->() const { return &current_->value(); }
 
     Iterator& operator++() {
-      ++_current;
+      ++current_;
       advance_to_valid();
       return *this;
     }
@@ -47,7 +47,7 @@ class SparseArray {
     }
 
     friend bool operator==(const Iterator& a, const Iterator& b) {
-      return a._current == b._current;
+      return a.current_ == b.current_;
     }
 
     friend bool operator!=(const Iterator& a, const Iterator& b) {
@@ -55,64 +55,62 @@ class SparseArray {
     }
 
    private:
-    typename container_t::iterator _current;
-    typename container_t::iterator _end;
+    typename container_t::iterator current_;
+    typename container_t::iterator end_;
 
     void advance_to_valid() {
-      while (_current != _end && !_current->has_value()) {
-        ++_current;
-      }
+      current_ = std::find_if(current_, end_,
+                              [](const auto& opt) { return opt.has_value(); });
     }
   };
 
   class ConstIterator {
- public:
-  using iterator_category = std::forward_iterator_tag;
-  using difference_type = std::ptrdiff_t;
-  using value_type = Component;
-  using pointer = const Component*;
-  using reference = const Component&;
+   public:
+    using iterator_category = std::forward_iterator_tag;
+    using difference_type = std::ptrdiff_t;
+    using value_type = Component;
+    using pointer = const Component*;
+    using reference = const Component&;
 
-  ConstIterator(typename container_t::const_iterator current,
-                typename container_t::const_iterator end)
-      : _current(current), _end(end) {
-    advance_to_valid();
-  }
-
-  reference operator*() const { return _current->value(); }
-
-  pointer operator->() const { return &(_current->value()); }
-
-  ConstIterator& operator++() {
-    ++_current;
-    advance_to_valid();
-    return *this;
-  }
-
-  ConstIterator operator++(int) {
-    ConstIterator temp = *this;
-    ++(*this);
-    return temp;
-  }
-
-  friend bool operator==(const ConstIterator& a, const ConstIterator& b) {
-    return a._current == b._current;
-  }
-
-  friend bool operator!=(const ConstIterator& a, const ConstIterator& b) {
-    return !(a == b);
-  }
-
- private:
-  typename container_t::const_iterator _current;
-  typename container_t::const_iterator _end;
-
-  void advance_to_valid() {
-    while (_current != _end && !_current->has_value()) {
-      ++_current;
+    ConstIterator(typename container_t::const_iterator current,
+                  typename container_t::const_iterator end)
+        : current_(current), end_(end) {
+      advance_to_valid();
     }
-  }
-};
+
+    reference operator*() const { return current_->value(); }
+
+    pointer operator->() const { return &current_->value(); }
+
+    ConstIterator& operator++() {
+      ++current_;
+      advance_to_valid();
+      return *this;
+    }
+
+    ConstIterator operator++(int) {
+      ConstIterator temp = *this;
+      ++(*this);
+      return temp;
+    }
+
+    friend bool operator==(const ConstIterator& a, const ConstIterator& b) {
+      return a.current_ == b.current_;
+    }
+
+    friend bool operator!=(const ConstIterator& a, const ConstIterator& b) {
+      return !(a == b);
+    }
+
+   private:
+    typename container_t::const_iterator current_;
+    typename container_t::const_iterator end_;
+
+    void advance_to_valid() {
+      current_ = std::find_if(current_, end_,
+                              [](const auto& opt) { return opt.has_value(); });
+    }
+  };
 
   SparseArray() = default;
   SparseArray(const SparseArray&) = default;
@@ -163,6 +161,6 @@ class SparseArray {
   container_t data_;
 };
 
-}  // namespace ecs
+}
 
 #endif  // SPARSE_ARRAY_HPP_

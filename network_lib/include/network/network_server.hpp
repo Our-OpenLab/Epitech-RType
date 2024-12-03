@@ -14,6 +14,8 @@
 #include "server_connection.hpp"
 
 namespace network {
+
+template <typename PacketType>
 class NetworkServer {
  public:
   explicit NetworkServer(const uint16_t port)
@@ -48,8 +50,8 @@ class NetworkServer {
 
   template <typename T>
   void broadcast(T&& packet) {
-    std::erase_if(connections_, [this, &packet](const std::shared_ptr<ServerConnection>& connection) {
-        if (connection && connection->is_connected()) {
+    std::erase_if(connections_, [this, &packet](auto& connection) {
+        if (connection->is_connected()) {
             connection->send(std::forward<T>(packet));
             return false;
         }
@@ -63,14 +65,14 @@ class NetworkServer {
     bool sent = false;
 
     std::erase_if(connections_,
-                  [this, &packet, connection_id, &sent](const auto& conn) {
-                    if (conn && conn->get_id() == connection_id) {
-                      if (conn->is_connected()) {
-                        conn->send(std::forward<T>(packet));
+                  [this, &packet, connection_id, &sent](auto& connection) {
+                    if (connection->get_id() == connection_id) {
+                      if (connection->is_connected()) {
+                        connection->send(std::forward<T>(packet));
                         sent = true;
                         return false;
                       }
-                      on_client_disconnect(conn);
+                      on_client_disconnect(connection);
                       return true;
                     }
                     return false;
@@ -91,7 +93,7 @@ class NetworkServer {
 
     if (it != connections_.end()) {
       on_client_disconnect(*it);
-      (*it)->disconnect();
+      *it.disconnect();
       connections_.erase(it);
       std::cout << "[Server][INFO] Client with ID " << connection_id
                 << " disconnected successfully." << std::endl;
@@ -102,7 +104,7 @@ class NetworkServer {
     return false;
   }
 
-  std::optional<OwnedPacket> pop_message() { return received_queue_.pop(); }
+  std::optional<OwnedPacket<PacketType>> pop_message() { return received_queue_.pop(); }
 
   [[nodiscard]] size_t get_connection_count() const {
     return connections_.size();
@@ -115,18 +117,25 @@ class NetworkServer {
    * @return `true` if the connection is accepted, `false` otherwise.
    */
   virtual bool on_client_connect(
-      const std::shared_ptr<ServerConnection>& connection) {
+      const std::shared_ptr<ServerConnection<PacketType>>& connection) {
     // Default implementation: always accept connections.
     // Override this in a derived class to implement custom logic.
     return true;
   }
 
+  /**
+  * Callback when a client is fully accepted (customizable in derived classes).
+  */
+  virtual void on_client_accepted(
+      const std::shared_ptr<ServerConnection<PacketType>>& connection) {
+    // Default: Do nothing. Override in derived classes.
+  }
+
   virtual void on_client_disconnect(
-      const std::shared_ptr<ServerConnection>& connection) {
-    if (connection) {
+      const std::shared_ptr<ServerConnection<PacketType>>& connection) {
+
       std::cout << "[Server][INFO] Client with ID " << connection->get_id()
                 << " disconnected." << std::endl;
-    }
   }
 
  private:
@@ -138,7 +147,7 @@ class NetworkServer {
                       << socket.remote_endpoint().address().to_string()
                       << std::endl;
 
-            auto connection = std::make_shared<ServerConnection>(
+            auto connection = std::make_shared<ServerConnection<PacketType>>(
                 io_context_, std::move(socket), received_queue_,
                 ++connection_id_counter_);
 
@@ -147,6 +156,7 @@ class NetworkServer {
               std::cout << "[Server][INFO] Connection accepted with ID "
                         << connection->get_id() << std::endl;
               connection->start();
+              on_client_accepted(connection);
             } else {
               std::cout << "[Server][INFO] Connection rejected from "
                         << socket.remote_endpoint().address().to_string()
@@ -171,9 +181,9 @@ class NetworkServer {
     connections_.clear();
   }
 
-  ConcurrentQueue<OwnedPacket> received_queue_;
+  ConcurrentQueue<OwnedPacket<PacketType>> received_queue_;
 
-  std::deque<std::shared_ptr<ServerConnection>> connections_;
+  std::deque<std::shared_ptr<ServerConnection<PacketType>>> connections_;
 
   asio::io_context io_context_;
   std::thread context_thread_;
