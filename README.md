@@ -21,7 +21,7 @@ This video game is inspired by R-type, a shoot them up game released in 1987 on 
 
 ## Credit
 
-### Devlopped by:
+### Developed by:
 - [Guillaume Michel](https://github.com/michelguillaume)
 - [Pierre Connes](https://github.com/Scorpierre)
 - [Abderrhamane Fajli](https://github.com/AbderF)
