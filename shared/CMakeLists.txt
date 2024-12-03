@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.26.0)
 
-project(ecs_lib VERSION 1.0 LANGUAGES CXX)
+project(shared VERSION 1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -8,13 +8,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 set(HEADERS
-        include/ecs/sparse_array.hpp
-        include/ecs/registry.hpp
-        include/ecs/zipper.hpp
+        include/shared/my_packet_types.hpp
+        include/shared/network_messages.hpp
+        include/shared/player_actions.hpp
 )
 
 add_library(${PROJECT_NAME} INTERFACE)
 
 target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-add_subdirectory(examples)

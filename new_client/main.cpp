@@ -8,7 +8,6 @@
 #include <SDL2/SDL.h>
 #include <network/protocol.hpp>
 
-
 int main() {
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0) {
     std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;

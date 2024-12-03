@@ -1,15 +1,17 @@
 #ifndef REGISTRY_HPP_
 #define REGISTRY_HPP_
 
-#include <unordered_map>
-#include <typeindex>
+#include <functional>
+#include <queue>
 #include <ranges>
+#include <typeindex>
+#include <unordered_map>
 
 #include "sparse_array.hpp"
 
 namespace ecs {
 template <typename... Components>
-class registry {
+class Registry final {
 public:
   using entity_t = std::size_t;
 
@@ -35,58 +37,59 @@ public:
         components_arrays_.at(std::type_index(typeid(Component))));
   }
 
+  template <typename Component>
+  SparseArray<Component>& get_components_cached() {
+    static SparseArray<Component>* cache = nullptr;
+    if (!cache) {
+      cache = &std::get<SparseArray<Component>>(
+          components_arrays_.at(std::type_index(typeid(Component))));
+    }
+    return *cache;
+  }
+
+  template <typename Component>
+  const SparseArray<Component>& get_components_cached() const {
+    static const SparseArray<Component>* cache = nullptr;
+    if (!cache) {
+      cache = &std::get<SparseArray<Component>>(
+          components_arrays_.at(std::type_index(typeid(Component))));
+    }
+    return *cache;
+  }
+
   entity_t spawn_entity() {
     if (!dead_entities_.empty()) {
-      const entity_t id = dead_entities_.back();
-      dead_entities_.pop_back();
+      //const entity_t id = dead_entities_.back();
+      //dead_entities_.pop_back();
+      const entity_t id = dead_entities_.top();
+      dead_entities_.pop();
       return id;
     }
     return next_entity_id_++;
   }
 
-  /*
-  void kill_entity(entity_t entity) {
-    for (auto& [type, array] : components_arrays_) {
-      try {
-        if (type == std::type_index(typeid(position))) {
-          auto& sparse_array = std::any_cast<SparseArray<position>&>(array);
-          sparse_array.erase(entity);
-          std::cout << "Killed component of type position for entity " << entity << std::endl;
-        } else if (type == std::type_index(typeid(velocity))) {
-          auto& sparse_array = std::any_cast<SparseArray<velocity>&>(array);
-          sparse_array.erase(entity);
-          std::cout << "Killed component of type velocity for entity " << entity << std::endl;
-        }
-      } catch (const std::bad_any_cast&) {
-        std::cerr << "Failed to cast component of type " << type.name() << std::endl;
-      }
-    }
-    dead_entities_.push_back(entity);
-    std::cout << "Entity " << entity << " marked as dead." << std::endl;
-  }
-  */
-
-  void kill_entity(entity_t entity) {
+  void kill_entity(const entity_t& entity) {
     for (auto& [type, array] : components_arrays_) {
       std::visit([&](auto& sparse_array) {
         if (entity < sparse_array.size()) {
           sparse_array.erase(entity);
-          std::cout << "Killed component of type " << type.name() << " for entity " << entity << std::endl;
         }
       }, array);
     }
-    dead_entities_.push_back(entity);
-    std::cout << "Entity " << entity << " marked as dead." << std::endl;
+    //dead_entities_.push_back(entity);
+    dead_entities_.push(entity);
   }
 
   template <typename Component>
-    typename SparseArray<Component>::reference_type add_component(entity_t entity, const Component& component) {
-    auto& components = get_components<Component>();
-    return components.insert_at(entity, component);
+  typename SparseArray<Component>::reference_type add_component(
+    const entity_t& entity, Component&& component) {
+    auto& components = get_components_cached<Component>();
+    return components.insert_at(entity, std::forward<Component>(component));
   }
 
   template <typename Component, typename... Params>
-  typename SparseArray<Component>::reference_type emplace_component(entity_t entity, Params&&... params) {
+  typename SparseArray<Component>::reference_type emplace_component(
+      const entity_t& entity, Params&&... params) {
     auto& components = get_components<Component>();
     return components.emplace_at(entity, std::forward<Params>(params)...);
   }
@@ -97,10 +100,34 @@ public:
     components.erase(entity);
   }
 
-private:
+  template <typename Function>
+  void add_system(Function&& system) {
+    systems_.emplace_back([=, this]() { system(*this); });
+  }
+
+  void run_systems() const {
+    for (auto& system : systems_) {
+      system();
+    }
+  }
+
+/*
+  void run_systems() const {
+    std::vector<std::future<void>> futures;
+    for (auto& system : systems_) {
+      futures.push_back(std::async(std::launch::async, system));
+    }
+    for (auto& future : futures) {
+      future.get();
+    }
+  }
+  */
+
+ private:
+  std::vector<std::function<void()>> systems_;
+
   std::unordered_map<std::type_index, SparseArrayVariant> components_arrays_;
-  //std::unordered_map<std::type_index, std::any> components_arrays_;
-  std::vector<entity_t> dead_entities_;
+  std::priority_queue<entity_t, std::vector<entity_t>, std::greater<>> dead_entities_;
   entity_t next_entity_id_ = 0;
 };
 }

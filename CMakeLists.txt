@@ -7,6 +7,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(network_lib)
 add_subdirectory(ecs_lib)
+add_subdirectory(shared)
+
+add_subdirectory(new_ecs_lib)
 
 add_subdirectory(client)
+add_subdirectory(new_client)
+
 add_subdirectory(server)

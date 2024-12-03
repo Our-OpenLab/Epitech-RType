@@ -5,10 +5,11 @@
 #include <thread>
 #include <chrono>
 
+template <typename PacketType>
 class ServerController {
 public:
-  explicit ServerController(game::GameServer& server)
-      : server_(server), keep_running_(true) {}
+  explicit ServerController(game::GameServer<PacketType>& server)
+      : server_(server) {}
 
   void start() {
     std::signal(SIGINT, [](int) { stop_requested_ = true; });
@@ -35,14 +36,14 @@ public:
   }
 
 private:
-  game::GameServer& server_;
-  std::atomic<bool> keep_running_;
-  static inline std::atomic<bool> stop_requested_ = false;
+  game::GameServer<PacketType>& server_;
+  std::atomic<bool> keep_running_ = {true};
+  static inline std::atomic<bool> stop_requested_ = {false};
 };
 
 int main()
 {
-  game::GameServer game_server(4242);
+  game::GameServer<network::MyPacketType> game_server(4242);
 
   ServerController controller(game_server);
 

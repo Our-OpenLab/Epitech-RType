@@ -2,16 +2,20 @@
 #define GAME_SERVER_HPP_
 
 #include <cstdint>
-#include <network/network_server.hpp>
+//#include <network/network_server.hpp>
 #include <thread>
 
-#include "logic.hpp"
+#include "game_logic.hpp"
+#include "game_state.hpp"
 #include "message_dispatcher.hpp"
+#include "custom_network_server.hpp"
+#include "event_queue.hpp"
 
 namespace game {
+template <typename PacketType>
   class GameServer final {
     public:
-      explicit GameServer(const uint16_t port) : network_server_(port), running_(false) {};
+      explicit GameServer(const uint16_t port) : network_server_(port, game_state_, event_queue_), running_(false) {};
       ~GameServer() { stop(); }
 
       bool start() {
@@ -48,12 +52,15 @@ namespace game {
         auto current_time = std::chrono::steady_clock::now();
         auto delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(
           current_time - next_tick_time + tick_duration
-        );
+        ).count();
 
         process_packets(50, std::chrono::milliseconds(10));
 
+        event_queue_.process();
+
         // Update game logic
         // logic_.update(delta_time);
+        game_state_.update(delta_time, network_server_);
 
         next_tick_time += tick_duration;
         if (auto sleep_time = next_tick_time - std::chrono::steady_clock::now();
@@ -83,14 +90,19 @@ namespace game {
 
         if (elapsed >= max_time) break;
 
-        MessageDispatcher::dispatch(std::move(packet_opt.value()));
+        MessageDispatcher::dispatch(std::move(packet_opt.value()), game_state_);
         ++processed;
       }
     }
 
-    network::NetworkServer network_server_;
+    network::CustomNetworkServer<PacketType> network_server_;
     Logic logic_;
     bool running_;
+
+    GameState game_state_;
+
+    EventQueue event_queue_;
+
     std::thread game_thread_;
   };
 }

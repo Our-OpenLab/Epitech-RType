@@ -5,54 +5,62 @@
 #include "protocol.hpp"
 
 namespace network {
-class ServerConnection : public Connection, public std::enable_shared_from_this<ServerConnection> {
+
+template <typename PacketType>
+class ServerConnection : public Connection<PacketType>, public std::enable_shared_from_this<ServerConnection<PacketType>> {
  public:
   ServerConnection(asio::io_context& io_context, asio::ip::tcp::socket socket,
-                   ConcurrentQueue<OwnedPacket>& received_queue,
+                   ConcurrentQueue<OwnedPacket<PacketType>>& received_queue,
                    const uint32_t id)
-      : Connection(io_context, std::move(socket)),
+      : Connection<PacketType>(io_context, std::move(socket)),
         received_queue_(received_queue),
         connection_id_(id) {}
 
   void start() {
-    read_header();
+    auto self = this->shared_from_this();
+    asio::post(self->io_context_, [self]() {
+        self->read_header();
+    });
   }
 
   [[nodiscard]] uint32_t get_id() const { return connection_id_; }
 
-  ~ServerConnection() override { Connection::disconnect(); }
-
  protected:
+
+  std::shared_ptr<Connection<PacketType>> this_shared() override {
+    return this->shared_from_this();
+  }
+
   void read_header() override {
     asio::async_read(
-        socket_, asio::buffer(&incoming_packet_.header, sizeof(Header)),
+        this->socket_,
+        asio::buffer(&this->incoming_packet_.header, sizeof(Header<PacketType>)),
         [this](const std::error_code& ec, std::size_t /*length*/) {
-          if (!ec) {
-            if (incoming_packet_.header.size > 0) {
-              if (incoming_packet_.header.size > MAX_BODY_SIZE) {
-                handle_error("Invalid Body Size", asio::error::message_size);
-                return;
-              }
-              incoming_packet_.body.resize(incoming_packet_.header.size);
-              read_body();
+            if (!ec) {
+                if (this->incoming_packet_.header.size > 0) {
+                    if (this->incoming_packet_.header.size > this->MAX_BODY_SIZE) {
+                        handle_error("Invalid Body Size", asio::error::message_size);
+                        return;
+                    }
+                    this->incoming_packet_.body.resize(this->incoming_packet_.header.size);
+                    read_body();
+                } else {
+                    received_queue_.push({this->shared_from_this(), this->incoming_packet_});
+                    asio::post(this->io_context_, [this]() { read_header(); });
+                }
             } else {
-              received_queue_.push({shared_from_this(), incoming_packet_});
-              read_header();
+                handle_error("Read Header", ec);
             }
-          } else {
-            handle_error("Read Header", ec);
-          }
         });
   }
 
   void read_body() override {
     asio::async_read(
-        socket_,
-        asio::buffer(incoming_packet_.body.data(),
-                     incoming_packet_.header.size),
+        this->socket_,
+        asio::buffer(this->incoming_packet_.body.data(), this->incoming_packet_.header.size),
         [this](const std::error_code& ec, std::size_t /*length*/) {
           if (!ec) {
-            received_queue_.push({shared_from_this(), incoming_packet_});
+            received_queue_.push({this->shared_from_this(), this->incoming_packet_});
             read_header();
           } else {
             handle_error("Read Body", ec);
@@ -60,44 +68,30 @@ class ServerConnection : public Connection, public std::enable_shared_from_this<
         });
   }
 
-  void write_header() override {
-    Packet current_packet;
+  void write_packet() override {
+    Packet<PacketType> current_packet;
 
-    if (send_queue_.try_pop(current_packet)) {
+    if (this->send_queue_.try_pop(current_packet)) {
+      std::vector<asio::const_buffer> buffers;
+
+      buffers.push_back(asio::buffer(&current_packet.header, sizeof(current_packet.header)));
+
+      if (!current_packet.body.empty()) {
+        buffers.push_back(asio::buffer(current_packet.body.data(), current_packet.body.size()));
+      }
+
       asio::async_write(
-          socket_, asio::buffer(&current_packet.header, sizeof(Header)),
-          [this, self = shared_from_this(),
-           current_packet = std::move(current_packet)](
-              const std::error_code& ec, std::size_t /*length*/) mutable {
-            if (!ec) {
-              if (current_packet.header.size > 0) {
-                write_body(std::move(current_packet));
+          this->socket_, buffers,
+          [this, current_packet = std::move(current_packet)](const std::error_code& ec, std::size_t /*length*/) mutable {
+              if (!ec) {
+                 if (!this->send_queue_.empty()) {
+                   this->write_packet();
+                 }
               } else {
-                if (!send_queue_.empty()) {
-                  write_header();
-                }
+                  this->handle_error("Write Packet", ec);
               }
-            } else {
-              handle_error("Write Header", ec);
-            }
           });
     }
-  }
-
-  void write_body(Packet current_packet) override {
-    asio::async_write(
-        socket_,
-        asio::buffer(current_packet.body.data(), current_packet.body.size()),
-        [this, self = shared_from_this()](const std::error_code& ec,
-                                          std::size_t /*length*/) {
-          if (!ec) {
-            if (!send_queue_.empty()) {
-              write_header();
-            }
-          } else {
-            handle_error("Write Body", ec);
-          }
-        });
   }
 
  private:
@@ -105,10 +99,10 @@ class ServerConnection : public Connection, public std::enable_shared_from_this<
     std::cerr << '[' << connection_id_ << "] Context: " << context
               << " | Error Code: " << ec.value()
               << " | Message: " << ec.message() << '\n';
-    disconnect();
+    this->disconnect();
   }
 
-  ConcurrentQueue<OwnedPacket>& received_queue_;
+  ConcurrentQueue<OwnedPacket<PacketType>>& received_queue_;
 
   uint32_t connection_id_;
 };
