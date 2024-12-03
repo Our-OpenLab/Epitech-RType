@@ -11,15 +11,17 @@ This video game is inspired by R-type, a shoot them up game released in 1987 on 
 ### Prerequisites
 - [CMake](https://cmake.org/)
 - [Conan](https://conan.io/)
-- A C++ compiler (g++, clang...)
+- C++ compiler (g++, clang...)
 
 ### [Instalation gide](instalation.md)
 
-## [Documentation](link)
+## Documentation
+
+[Link of the Github Pages](link)
 
 ## Credit
 
-# Devlopped by:
+### Devlopped by:
 - [Guillaume Michel](https://github.com/michelguillaume)
 - [Pierre Connes](https://github.com/Scorpierre)
 - [Abderrhamane Fajli](https://github.com/AbderF)
