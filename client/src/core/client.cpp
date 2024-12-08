@@ -1,121 +1,225 @@
 #include <SDL.h>
 #include <iostream>
 
-#include <client/core/client.hpp>
-#include <client/core/message_dispatcher.hpp>
-#include <client/core/ping_manager.hpp>
-#include <shared/player_actions.hpp>
+#include "client/core/client.hpp"
+#include "client/core/message_dispatcher.hpp"
 
 Client::Client(const std::string& host, const std::string& port)
-    : renderer_(800, 600, "R-Type"), network_client_(host, port), ping_manager_(*this) {
+    : renderer_(1920, 1080, "R-Type"),
+      network_client_(host, port),
+      input_manager_([this](InputManager::PlayerInput&& input) {
+        const network::PlayerInput network_input{
+          .player_id = client_id_,
+          .actions = input.actions,
+          .mouse_x = input.mouse_x,
+          .mouse_y = input.mouse_y,
+          .timestamp = input.timestamp
+        };
+
+        auto input_packet = network::PacketFactory<network::MyPacketType>::create_packet(
+             network::MyPacketType::kPlayerInput, network_input);
+
+        network_client_.send(std::move(input_packet));
+      }, screen_manager_),
+      game_state_(game_engine_.GetRegistry()) {
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
     throw std::runtime_error("SDL_Init failed: " + std::string(SDL_GetError()));
   }
+
+  screen_manager_.InitializeScreenDimensions();
+
+  game_engine_.InitializeSystems();
 
   std::cout << "[Client][INFO] Initialization completed successfully." << std::endl;
 }
 
 Client::~Client() {
-  shutdown();
+  Shutdown();
 }
-
-void Client::run() {
-  constexpr auto tick_duration = std::chrono::milliseconds(16);
-
-  time_manager_.start_tick(tick_duration);
+/*
+void Client::Run() {
+  uint64_t tick_counter = 0;
+  uint64_t last_ping_tick = 0;
+  auto next_tick_time = std::chrono::steady_clock::now();
 
   while (is_running_) {
-    time_manager_.update();
+    const auto current_time = std::chrono::steady_clock::now();
+    const float delta_time =
+        std::chrono::duration<float>(current_time - next_tick_time).count();
+
+    const auto render_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+    current_time.time_since_epoch()) - kRenderDelay;
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) {
         is_running_ = false;
       }
-      handle_input(event);
+
+      input_manager_.HandleEvent(event, current_time);
     }
 
-    process_packets(50, std::chrono::milliseconds(10));
+    ProcessPackets(kMaxPacketsPerTick, kMaxPacketProcessingTime);
 
-    ping_manager_.update();
+    if (tick_counter - last_ping_tick >= kPingFrequencyTicks) {
+      SendPing(tick_counter);
+      last_ping_tick = tick_counter;
+    }
 
-    //game_state_.update(time_manager_.delta_time_ms().count());
+    game_engine_.Update(delta_time, render_time);
+    //game_engine_.Update(delta_time);
+
+    renderer_.Clear();
+    renderer_.DrawGame(game_state_);
+    renderer_.Present();
+
+    ++tick_counter;
+    next_tick_time += kTickDuration;
+
+    if (const auto sleep_time =
+            next_tick_time - std::chrono::steady_clock::now();
+        sleep_time > std::chrono::milliseconds(0)) {
+      std::this_thread::sleep_for(sleep_time);
+        } else {
+          std::cerr << "[Client] Tick overrun by "
+                    << -sleep_time.count() << " ms\n";
+          next_tick_time = std::chrono::steady_clock::now();
+        }
+  }
+}
+*/
+
+void Client::Run() {
+    uint64_t tick_counter = 0;
+    uint64_t last_ping_tick = 0;
+    auto next_tick_time = std::chrono::steady_clock::now();
+
+    while (is_running_) {
+        const auto tick_start_time = std::chrono::steady_clock::now();
+        const float delta_time =
+            std::chrono::duration<float>(tick_start_time - next_tick_time).count();
+
+        const auto render_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+        tick_start_time.time_since_epoch()) - kRenderDelay;
+
+        std::cout << "[Client][DEBUG] Tick: " << tick_counter
+                  << ", Render time: " << render_time.count() << " ms\n";
+
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                is_running_ = false;
+            }
+
+            input_manager_.HandleEvent(event, tick_start_time);
+        }
+
+        const auto packet_start_time = std::chrono::steady_clock::now();
+        ProcessPackets(kMaxPacketsPerTick, kMaxPacketProcessingTime);
+        const auto packet_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - packet_start_time).count();
+        std::cout << "[Client][DEBUG] Packet processing time: " << packet_time << " ms\n";
+
+        if (tick_counter - last_ping_tick >= kPingFrequencyTicks) {
+            SendPing(tick_counter);
+            last_ping_tick = tick_counter;
+        }
+
+        const auto update_start_time = std::chrono::steady_clock::now();
+        game_engine_.Update(delta_time, render_time);
+        const auto update_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - update_start_time).count();
+        std::cout << "[Client][DEBUG] Update time: " << update_time << " ms\n";
+
+        const auto render_start_time = std::chrono::steady_clock::now();
+        renderer_.Clear();
+        renderer_.DrawGame(game_state_);
+        renderer_.Present();
+        const auto render_time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - render_start_time).count();
+        std::cout << "[Client][DEBUG] Render time: " << render_time_ms << " ms\n";
+
+        ++tick_counter;
+        next_tick_time += kTickDuration;
+
+        if (const auto sleep_time = next_tick_time - std::chrono::steady_clock::now();
+            sleep_time > std::chrono::milliseconds(0)) {
+            std::this_thread::sleep_for(sleep_time);
+        } else {
+            std::cerr << "[Client][WARNING] Tick overrun by "
+                      << -sleep_time.count() << " ms\n";
+            next_tick_time = std::chrono::steady_clock::now();
+        }
+    }
+}
+
+
+/*
+void Client::Run() {
+  uint64_t tick_counter = 0;
+  uint64_t last_ping_tick = 0;
+  auto next_tick_time = std::chrono::steady_clock::now();
+
+  while (is_running_) {
+    const auto current_time = std::chrono::steady_clock::now();
+
+    // Rattraper les ticks manqués
+    while (current_time > next_tick_time) {
+      const float delta_time =
+          std::chrono::duration<float>(kTickDuration).count();
+
+      SDL_Event event;
+      while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT) {
+          is_running_ = false;
+        }
+        HandleInput(event);
+      }
+
+      ProcessPackets(kMaxPacketsPerTick, kMaxPacketProcessingTime);
+
+      if (tick_counter - last_ping_tick >= kPingFrequencyTicks) {
+        SendPing(tick_counter);
+        last_ping_tick = tick_counter;
+      }
+
+      game_state_.Update(delta_time);
+
+      ++tick_counter;
+      next_tick_time += kTickDuration;
+    }
 
     renderer_.clear();
     renderer_.draw_game(game_state_);
     renderer_.present();
 
-    time_manager_.wait_for_next_tick();
-  }
-}
-
-void Client::handle_input(const SDL_Event& event) {
-  using namespace player_actions;
-
-  static uint16_t current_actions_ = 0;
-  static std::chrono::steady_clock::time_point last_input_sent_ = std::chrono::steady_clock::now();
-
-  bool actions_changed = false;
-
-  if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
-    const bool key_down = (event.type == SDL_KEYDOWN);
-
-    switch (event.key.keysym.sym) {
-      case SDLK_w:
-        if (key_down) actions_changed |= !(current_actions_ & PlayerAction::MoveUp);
-        current_actions_ = key_down ? (current_actions_ | PlayerAction::MoveUp)
-                                    : (current_actions_ & ~PlayerAction::MoveUp);
-        break;
-      case SDLK_s:
-        if (key_down) actions_changed |= !(current_actions_ & PlayerAction::MoveDown);
-        current_actions_ = key_down ? (current_actions_ | PlayerAction::MoveDown)
-                                    : (current_actions_ & ~PlayerAction::MoveDown);
-        break;
-      case SDLK_a:
-        if (key_down) actions_changed |= !(current_actions_ & PlayerAction::MoveLeft);
-        current_actions_ = key_down ? (current_actions_ | PlayerAction::MoveLeft)
-                                    : (current_actions_ & ~PlayerAction::MoveLeft);
-        break;
-      case SDLK_d:
-        if (key_down) actions_changed |= !(current_actions_ & PlayerAction::MoveRight);
-        current_actions_ = key_down ? (current_actions_ | PlayerAction::MoveRight)
-                                    : (current_actions_ & ~PlayerAction::MoveRight);
-        break;
-      case SDLK_SPACE:
-        if (key_down) actions_changed |= !(current_actions_ & PlayerAction::Shoot);
-        current_actions_ = key_down ? (current_actions_ | PlayerAction::Shoot)
-                                    : (current_actions_ & ~PlayerAction::Shoot);
-        break;
-      default:
-        break;
+    const auto sleep_time = next_tick_time - std::chrono::steady_clock::now();
+    if (sleep_time > std::chrono::milliseconds(0)) {
+      std::this_thread::sleep_for(sleep_time);
+    } else {
+      std::cerr << "[Client] Tick overrun by "
+                << -sleep_time.count() << " ms\n";
     }
   }
+}
+*/
 
-  const auto now = std::chrono::steady_clock::now();
-  const auto time_since_last_packet = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_input_sent_);
+void Client::SendPing(uint64_t tick_counter) {
+  const auto timestamp = static_cast<uint32_t>(
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now().time_since_epoch())
+          .count());
 
-  if (actions_changed || time_since_last_packet >= std::chrono::milliseconds(50)) {
-    const auto timestamp =
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            time_manager_.now().time_since_epoch())
-            .count();
+  auto ping_packet = network::PacketFactory<network::MyPacketType>::create_packet(
+      network::MyPacketType::kPing, timestamp);
 
-    const network::PlayerInput input{
-      .player_id = client_id_,
-      .actions = current_actions_,
-      .timestamp = static_cast<uint32_t>(timestamp)
-    };
+  network_client_.send(std::move(ping_packet));
 
-    auto input_packet = network::PacketFactory<network::MyPacketType>::create_packet(
-        network::MyPacketType::PlayerInput, input);
-    network_client_.send(std::move(input_packet));
-
-    last_input_sent_ = now;
-  }
+  std::cout << "[Client][INFO] Ping sent at tick: " << tick_counter
+            << ", timestamp: " << timestamp << " ms\n";
 }
 
-
-void Client::process_packets(const int max_packets,
+void Client::ProcessPackets(const int max_packets,
                              const std::chrono::milliseconds max_time) {
   {
     const auto start_time = std::chrono::steady_clock::now();
@@ -131,17 +235,17 @@ void Client::process_packets(const int max_packets,
 
       if (elapsed >= max_time) break;
 
-      MessageDispatcher::dispatch(std::move(packet_opt.value()), *this);
+      MessageDispatcher::Dispatch(std::move(packet_opt.value()), *this);
       ++processed;
     }
   }
 }
 
 
-void Client::shutdown() {
+void Client::Shutdown() {
   std::cout << "[Client][INFO] Shutting down client..." << std::endl;
 
-  renderer_.shutdown();
+  renderer_.Shutdown();
   SDL_Quit();
 
   std::cout << "[Client][INFO] Shutdown completed." << std::endl;

@@ -1,27 +1,23 @@
 #ifndef RENDERER_HPP_
 #define RENDERER_HPP_
 
-#include <SDL2/SDL.h>
-#include <string>
+#include <SDL.h>
 
-#include "game_state.hpp"
+#include "client/engine/game_state.hpp"
 
 class Renderer {
 public:
   Renderer(int width, int height, const std::string& title);
   ~Renderer();
 
-  void draw_game(const GameState& game_state) const;
-
-  void clear() const;
-
-  void present() const;
-
-  void shutdown();
+  void DrawGame(client::GameState& game_state) const;
+  void Clear() const;
+  void Present() const;
+  void Shutdown();
 
 private:
-  SDL_Window* window_;
-  SDL_Renderer* renderer_;
+  SDL_Window* window_{nullptr};
+  SDL_Renderer* renderer_{nullptr};
 };
 
 #endif  // RENDERER_HPP_

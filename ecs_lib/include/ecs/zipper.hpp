@@ -41,6 +41,10 @@ public:
       return index_ != other.index_;
     }
 
+    size_t get_index() const {
+      return index_;
+    }
+
   private:
     std::tuple<Containers&...>& containers_;
     size_t index_;

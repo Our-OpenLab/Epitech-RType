@@ -8,17 +8,40 @@
 namespace network {
 struct PlayerAssign {
   uint8_t player_id;
+  float x;
+  float y;
 };
 
 struct PlayerInput {
   uint8_t player_id;
   uint16_t actions;
+  float mouse_x;
+  float mouse_y;
   uint32_t timestamp;
 };
 
 struct UpdatePosition {
   uint8_t player_id;
+  float x;
+  float y;
+  uint32_t timestamp;
+};
+
+struct UpdateProjectile {
+  uint8_t projectile_id;
+  uint8_t owner_id;
+  float x;
+  float y;
+  uint32_t timestamp;
+};
+
+struct PlayerJoin {
+  uint8_t player_id;
   float x, y;
+};
+
+struct PlayerLeave {
+  uint8_t player_id;
 };
 }
 

@@ -18,7 +18,7 @@ int main(const int argc, const char* argv[]) {
 
     Client client(host, port);
 
-    client.run();
+    client.Run();
 
     return 0;
   } catch (const std::exception& e) {

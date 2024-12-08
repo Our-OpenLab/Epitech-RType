@@ -1,17 +1,12 @@
 set(SOURCES
         src/main.cpp
-        src/message_dispatcher.cpp
-        src/game_state.cpp
-)
-
-set(HEADERS
-        include/game/game_server.hpp
-        include/game/game_logic.hpp
-        include/game/message_dispatcher.hpp
+        src/core/message_dispatcher.cpp
+        src/engine/game_state.cpp
+        src/engine/game_engine.cpp
 )
 
 add_executable(server ${SOURCES})
 
 target_include_directories(server PRIVATE include)
 
-target_link_libraries(server PRIVATE network_lib shared)
+target_link_libraries(server PRIVATE network_lib ecs_lib shared)

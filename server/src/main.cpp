@@ -1,9 +1,10 @@
-#include <game/game_server.hpp>
 #include <iostream>
 #include <csignal>
 #include <atomic>
 #include <thread>
 #include <chrono>
+
+#include <server/core/game_server.hpp>
 
 template <typename PacketType>
 class ServerController {
@@ -11,10 +12,10 @@ public:
   explicit ServerController(game::GameServer<PacketType>& server)
       : server_(server) {}
 
-  void start() {
+  void Start() {
     std::signal(SIGINT, [](int) { stop_requested_ = true; });
 
-    if (!server_.start()) {
+    if (!server_.Start()) {
       std::cerr << "[Main][ERROR] Failed to start the game server.\n";
       return;
     }
@@ -31,14 +32,14 @@ public:
     if (!keep_running_) return;
 
     keep_running_ = false;
-    server_.stop();
+    server_.Stop();
     std::cout << "[Main] Server shutdown completed.\n";
   }
 
 private:
   game::GameServer<PacketType>& server_;
-  std::atomic<bool> keep_running_ = {true};
-  static inline std::atomic<bool> stop_requested_ = {false};
+  std::atomic<bool> keep_running_{true};
+  static inline std::atomic<bool> stop_requested_{false};
 };
 
 int main()
@@ -47,7 +48,7 @@ int main()
 
   ServerController controller(game_server);
 
-  controller.start();
+  controller.Start();
 
   return 0;
 }

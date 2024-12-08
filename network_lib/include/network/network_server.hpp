@@ -52,6 +52,26 @@ class NetworkServer {
   void broadcast(T&& packet) {
     std::erase_if(connections_, [this, &packet](auto& connection) {
         if (connection->is_connected()) {
+            std::cout << "[Server][INFO] Sending packet " << packet << std::endl;
+            connection->send(std::forward<T>(packet));
+            return false;
+        }
+        on_client_disconnect(connection);
+        return true;
+    });
+  }
+
+  template <typename T>
+  void broadcast_to_others(
+    const std::shared_ptr<ServerConnection<PacketType>>& excluded_connection,
+    T&& packet) {
+    std::erase_if(connections_, [this, &packet, &excluded_connection](auto& connection) {
+        if (connection == excluded_connection) {
+            return false;
+        }
+        if (connection->is_connected()) {
+            std::cout << "[Server][INFO] Broadcasting packet to client ID "
+                      << connection->get_id() << std::endl;
             connection->send(std::forward<T>(packet));
             return false;
         }
@@ -68,6 +88,7 @@ class NetworkServer {
                   [this, &packet, connection_id, &sent](auto& connection) {
                     if (connection->get_id() == connection_id) {
                       if (connection->is_connected()) {
+                        std::cout << "[Server][INFO] Sending packet " << packet << std::endl;
                         connection->send(std::forward<T>(packet));
                         sent = true;
                         return false;

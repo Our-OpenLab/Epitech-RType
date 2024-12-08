@@ -7,7 +7,7 @@
 #include <network/server_connection.hpp>
 #include <shared/my_packet_types.hpp>
 
-#include "game_state.hpp"
+#include <server/engine/game_state.hpp>
 
 namespace game {
 class MessageDispatcher {
@@ -27,7 +27,7 @@ class MessageDispatcher {
   static void default_handler(network::Packet<network::MyPacketType>& packet, const std::shared_ptr<network::ServerConnection<network::MyPacketType>>& connection, GameState& game_state);
 
   static const std::array<Handler,
-                          static_cast<size_t>(network::MyPacketType::MaxTypes)>
+                          static_cast<size_t>(network::MyPacketType::kMaxTypes)>
       handlers_;
 };
 }  // namespace game

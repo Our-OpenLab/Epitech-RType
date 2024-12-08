@@ -8,9 +8,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(SOURCES
         src/main.cpp
         src/core/client.cpp
+        src/core/message_dispatcher.cpp
         src/core/renderer.cpp
-        src/core/ping_manager.cpp
-        src/core/game_state.cpp
+        src/engine/game_engine.cpp
+        src/engine/game_state.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})

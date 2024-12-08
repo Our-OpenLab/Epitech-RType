@@ -11,6 +11,9 @@ set(HEADERS
         include/shared/my_packet_types.hpp
         include/shared/network_messages.hpp
         include/shared/player_actions.hpp
+        include/shared/components.hpp
+        include/shared/vector2.hpp
+        include/shared/vector3.hpp
 )
 
 add_library(${PROJECT_NAME} INTERFACE)

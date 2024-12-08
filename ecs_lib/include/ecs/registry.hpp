@@ -1,6 +1,8 @@
 #ifndef REGISTRY_HPP_
 #define REGISTRY_HPP_
 
+#include <any>
+#include <chrono>
 #include <functional>
 #include <queue>
 #include <ranges>
@@ -16,6 +18,7 @@ public:
   using entity_t = std::size_t;
 
   using SparseArrayVariant = std::variant<SparseArray<Components>...>;
+  using SystemFunction = std::function<void(Registry&, float, std::chrono::milliseconds)>;
 
   template <typename Component>
   SparseArray<Component>& register_component() {
@@ -100,16 +103,18 @@ public:
     components.erase(entity);
   }
 
-  template <typename Function>
-  void add_system(Function&& system) {
-    systems_.emplace_back([=, this]() { system(*this); });
+  template <typename Func>
+    void add_system(Func&& func) {
+    systems_.emplace_back(std::forward<Func>(func));
   }
 
-  void run_systems() const {
+  void run_systems(const float delta_time, const std::chrono::milliseconds render_time) {
     for (auto& system : systems_) {
-      system();
+      system(*this, delta_time, render_time);
     }
   }
+
+
 
 /*
   void run_systems() const {
@@ -123,8 +128,8 @@ public:
   }
   */
 
- private:
-  std::vector<std::function<void()>> systems_;
+private:
+  std::vector<SystemFunction> systems_;
 
   std::unordered_map<std::type_index, SparseArrayVariant> components_arrays_;
   std::priority_queue<entity_t, std::vector<entity_t>, std::greater<>> dead_entities_;

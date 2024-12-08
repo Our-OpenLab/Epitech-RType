@@ -119,8 +119,8 @@ public:
       std::cerr << "[Client][ERROR] Attempt to send a packet failed: connection is not active." << std::endl;
       return;
     }
+    std::cout << "[Client][INFO] Sending packet " << packet << std::endl;
     connection_->send(std::forward<T>(packet));
-    std::cout << "[Client][INFO] Packet sent to the server." << std::endl;
   }
 
   std::optional<Packet<PacketType>> pop_message() { return received_queue_.pop(); }

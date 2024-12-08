@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include <cstring>
+#include <span>
 
 namespace network {
 template <typename PacketType>
@@ -62,7 +63,7 @@ struct Packet {
 template <typename PacketType>
 inline std::ostream& operator<<(std::ostream& os, const Packet<PacketType>& packet) {
   os << "Type: " << static_cast<uint32_t>(packet.header.type)
-     << "Size: " << packet.header.size;
+     << " Size: " << packet.header.size;
   return os;
 }
 
@@ -106,6 +107,24 @@ public:
   }
 
   template <typename T>
+  static Packet<PacketType> create_packet(PacketType type, std::span<T> data) {
+    static_assert(std::is_trivially_copyable_v<T>,
+                  "T must be trivially copyable");
+
+    const size_t total_size = data.size_bytes();
+
+    Packet<PacketType> packet{
+      .header = {
+        .type = type,
+        .size = static_cast<uint32_t>(total_size),
+    },
+    .body = std::vector<uint8_t>(reinterpret_cast<const uint8_t*>(data.data()),
+                                 reinterpret_cast<const uint8_t*>(data.data()) + total_size)};
+
+    return packet;
+  }
+
+  template <typename T>
   static T extract_data(const Packet<PacketType>& packet) {
     static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
 
@@ -114,6 +133,20 @@ public:
     }
 
     return *reinterpret_cast<const T*>(packet.body.data());
+  }
+
+  template <typename T>
+  static std::vector<T> extract_data_array(const Packet<PacketType>& packet) {
+    static_assert(std::is_trivially_copyable_v<T>,
+                  "T must be trivially copyable");
+
+    if (packet.body.size() % sizeof(T) != 0) {
+      throw std::out_of_range("Packet body size is not a multiple of the expected structure size");
+    }
+
+    const size_t count = packet.body.size() / sizeof(T);
+    const auto* raw_data = reinterpret_cast<const T*>(packet.body.data());
+    return std::vector<T>(raw_data, raw_data + count);
   }
 };
 
