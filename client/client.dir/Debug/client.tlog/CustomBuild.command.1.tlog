@@ -1,0 +1,10 @@
+^C:\USERS\PADA-PC\TEK\EPITECH-RTYPE\CLIENT\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/PADA-PC/TEK/Epitech-RType -BC:/Users/PADA-PC/TEK/Epitech-RType --check-stamp-file C:/Users/PADA-PC/TEK/Epitech-RType/client/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

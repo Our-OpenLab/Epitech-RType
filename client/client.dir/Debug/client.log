@@ -1,0 +1,52 @@
+﻿  main.cpp
+  Please define _WIN32_WINNT or _WIN32_WINDOWS appropriately. For example:
+  - add -D_WIN32_WINNT=0x0601 to the compiler command line; or
+  - add _WIN32_WINNT=0x0601 to your project's Preprocessor Definitions.
+  Assuming _WIN32_WINNT=0x0601 (i.e. Windows 7 target).
+LINK : warning LNK4098: conflit entre la bibliothèque par défaut 'MSVCRT' et les autres bibliothèques ; utilisez /NODEFAULTLIB:library
+SDL2-static.lib(SDL_systimer.obj) : error LNK2019: symbole externe non résolu __imp_timeBeginPeriod référencé dans la fonction SDL_TimerResolutionChanged
+SDL2-static.lib(SDL_systimer.obj) : error LNK2019: symbole externe non résolu __imp_timeEndPeriod référencé dans la fonction SDL_TicksQuit
+SDL2-static.lib(SDL_hidapi.obj) : error LNK2019: symbole externe non résolu __imp_SetupDiEnumDeviceInfo référencé dans la fonction PLATFORM_hid_enumerate
+SDL2-static.lib(SDL_hidapi.obj) : error LNK2019: symbole externe non résolu __imp_SetupDiDestroyDeviceInfoList référencé dans la fonction PLATFORM_hid_enumerate
+SDL2-static.lib(SDL_hidapi.obj) : error LNK2019: symbole externe non résolu __imp_SetupDiEnumDeviceInterfaces référencé dans la fonction PLATFORM_hid_enumerate
+SDL2-static.lib(SDL_hidapi.obj) : error LNK2019: symbole externe non résolu __imp_SetupDiGetDeviceInterfaceDetailA référencé dans la fonction PLATFORM_hid_enumerate
+SDL2-static.lib(SDL_hidapi.obj) : error LNK2019: symbole externe non résolu __imp_SetupDiGetClassDevsA référencé dans la fonction PLATFORM_hid_enumerate
+SDL2-static.lib(SDL_hidapi.obj) : error LNK2019: symbole externe non résolu __imp_SetupDiGetDeviceRegistryPropertyA référencé dans la fonction PLATFORM_hid_enumerate
+SDL2-static.lib(SDL_windowskeyboard.obj) : error LNK2019: symbole externe non résolu GetFileVersionInfoSizeA référencé dans la fonction IME_GetId
+SDL2-static.lib(SDL_windowskeyboard.obj) : error LNK2019: symbole externe non résolu GetFileVersionInfoA référencé dans la fonction IME_GetId
+SDL2-static.lib(SDL_windowskeyboard.obj) : error LNK2019: symbole externe non résolu VerQueryValueA référencé dans la fonction IME_GetId
+SDL2-static.lib(SDL_windowskeyboard.obj) : error LNK2019: symbole externe non résolu ImmGetIMEFileNameA référencé dans la fonction IME_GetId
+SDL2-static.lib(SDL_windowskeyboard.obj) : error LNK2019: symbole externe non résolu ImmGetContext référencé dans la fonction IME_ClearComposition
+SDL2-static.lib(SDL_windowskeyboard.obj) : error LNK2019: symbole externe non résolu ImmReleaseContext référencé dans la fonction IME_ClearComposition
+SDL2-static.lib(SDL_windowskeyboard.obj) : error LNK2019: symbole externe non résolu ImmAssociateContext référencé dans la fonction IME_Disable
+SDL2-static.lib(SDL_windowskeyboard.obj) : error LNK2019: symbole externe non résolu ImmGetCompositionStringW référencé dans la fonction IME_GetCompositionString
+SDL2-static.lib(SDL_windowskeyboard.obj) : error LNK2019: symbole externe non résolu ImmSetCompositionStringW référencé dans la fonction IME_ClearComposition
+SDL2-static.lib(SDL_windowskeyboard.obj) : error LNK2019: symbole externe non résolu ImmGetCandidateListW référencé dans la fonction IME_GetCandidateList
+SDL2-static.lib(SDL_windowskeyboard.obj) : error LNK2019: symbole externe non résolu ImmNotifyIME référencé dans la fonction IME_ClearComposition
+SDL2-static.lib(SDL_windowskeyboard.obj) : error LNK2019: symbole externe non résolu ImmSetCompositionWindow référencé dans la fonction WIN_SetTextInputRect
+SDL2-static.lib(SDL_windowskeyboard.obj) : error LNK2019: symbole externe non résolu ImmSetCandidateWindow référencé dans la fonction WIN_SetTextInputRect
+SDL2-static.lib(SDL_winmm.obj) : error LNK2019: symbole externe non résolu __imp_waveOutGetNumDevs référencé dans la fonction WINMM_DetectDevices
+SDL2-static.lib(SDL_winmm.obj) : error LNK2019: symbole externe non résolu __imp_waveOutGetDevCapsW référencé dans la fonction WINMM_DetectDevices
+SDL2-static.lib(SDL_winmm.obj) : error LNK2019: symbole externe non résolu __imp_waveOutGetErrorTextW référencé dans la fonction SetMMerror
+SDL2-static.lib(SDL_winmm.obj) : error LNK2019: symbole externe non résolu __imp_waveOutOpen référencé dans la fonction WINMM_OpenDevice
+SDL2-static.lib(SDL_winmm.obj) : error LNK2019: symbole externe non résolu __imp_waveOutClose référencé dans la fonction WINMM_CloseDevice
+SDL2-static.lib(SDL_winmm.obj) : error LNK2019: symbole externe non résolu __imp_waveOutPrepareHeader référencé dans la fonction WINMM_OpenDevice
+SDL2-static.lib(SDL_winmm.obj) : error LNK2019: symbole externe non résolu __imp_waveOutUnprepareHeader référencé dans la fonction WINMM_CloseDevice
+SDL2-static.lib(SDL_winmm.obj) : error LNK2019: symbole externe non résolu __imp_waveOutWrite référencé dans la fonction WINMM_PlayDevice
+SDL2-static.lib(SDL_winmm.obj) : error LNK2019: symbole externe non résolu __imp_waveOutReset référencé dans la fonction WINMM_CloseDevice
+SDL2-static.lib(SDL_winmm.obj) : error LNK2019: symbole externe non résolu __imp_waveInGetNumDevs référencé dans la fonction WINMM_DetectDevices
+SDL2-static.lib(SDL_winmm.obj) : error LNK2019: symbole externe non résolu __imp_waveInGetDevCapsW référencé dans la fonction WINMM_DetectDevices
+SDL2-static.lib(SDL_winmm.obj) : error LNK2019: symbole externe non résolu __imp_waveInOpen référencé dans la fonction WINMM_OpenDevice
+SDL2-static.lib(SDL_winmm.obj) : error LNK2019: symbole externe non résolu __imp_waveInClose référencé dans la fonction WINMM_CloseDevice
+SDL2-static.lib(SDL_winmm.obj) : error LNK2019: symbole externe non résolu __imp_waveInPrepareHeader référencé dans la fonction WINMM_OpenDevice
+SDL2-static.lib(SDL_winmm.obj) : error LNK2019: symbole externe non résolu __imp_waveInUnprepareHeader référencé dans la fonction WINMM_CloseDevice
+SDL2-static.lib(SDL_winmm.obj) : error LNK2019: symbole externe non résolu __imp_waveInAddBuffer référencé dans la fonction WINMM_CaptureFromDevice
+SDL2-static.lib(SDL_winmm.obj) : error LNK2019: symbole externe non résolu __imp_waveInStart référencé dans la fonction WINMM_OpenDevice
+SDL2-static.lib(SDL_winmm.obj) : error LNK2019: symbole externe non résolu __imp_waveInReset référencé dans la fonction WINMM_CloseDevice
+SDL2-static.lib(SDL_windows_gaming_input.obj) : error LNK2019: symbole externe non résolu __imp_CM_Get_Device_IDA référencé dans la fonction SDL_IsXInputDevice
+SDL2-static.lib(SDL_windows_gaming_input.obj) : error LNK2019: symbole externe non résolu __imp_CM_Get_Parent référencé dans la fonction SDL_IsXInputDevice
+SDL2-static.lib(SDL_windows_gaming_input.obj) : error LNK2019: symbole externe non résolu __imp_CM_Locate_DevNodeA référencé dans la fonction SDL_IsXInputDevice
+SDL2main.lib(SDL_windows_main.obj) : error LNK2019: symbole externe non résolu SDL_main référencé dans la fonction main_getcmdline
+    Conseil sur les symboles définis et susceptibles de correspondre :
+      "int __cdecl SDL_main(void)" (?SDL_main@@YAHXZ)
+C:\Users\PADA-PC\TEK\Epitech-RType\client\Debug\client.exe : fatal error LNK1120: 43 externes non résolus
