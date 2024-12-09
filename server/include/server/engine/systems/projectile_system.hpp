@@ -7,9 +7,9 @@
 #include "server/engine/ecs_alias.hpp"
 
 constexpr float kGameBoundaryLeft = 0.0f;
-constexpr float kGameBoundaryRight = 200.0f;
+constexpr float kGameBoundaryRight = 2000.0f;
 constexpr float kGameBoundaryTop = 0.0f;
-constexpr float kGameBoundaryBottom = 200.0f;
+constexpr float kGameBoundaryBottom = 2000.0f;
 
 constexpr float kkMovementThresholdSquared = 0.01f * 0.01f;
 

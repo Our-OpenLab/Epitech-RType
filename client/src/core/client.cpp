@@ -5,7 +5,7 @@
 #include "client/core/message_dispatcher.hpp"
 
 Client::Client(const std::string& host, const std::string& port)
-    : renderer_("R-Type"),
+  : renderer_(1920, 1080, "R-Type"),
       network_client_(host, port),
       input_manager_([this](InputManager::PlayerInput&& input) {
         const network::PlayerInput network_input{

@@ -2,28 +2,10 @@
 
 #include "client/core/renderer.hpp"
 
-Renderer::Renderer(const std::string& title) {
-  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-    throw std::runtime_error("Failed to initialize SDL: " + std::string(SDL_GetError()));
-  }
-
-  SDL_DisplayMode display_mode;
-  if (SDL_GetCurrentDisplayMode(0, &display_mode) != 0) {
-    throw std::runtime_error("Failed to get display mode: " +
-                             std::string(SDL_GetError()));
-  }
-
-  const int screen_width = display_mode.w;
-  const int screen_height = display_mode.h;
-
+Renderer::Renderer(const int width, const int height, const std::string& title) {
   window_ = SDL_CreateWindow(
-      title.c_str(),
-      SDL_WINDOWPOS_CENTERED,
-      SDL_WINDOWPOS_CENTERED,
-      screen_width,
-      screen_height,
-      SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN
-  );
+      title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+      width, height, SDL_WINDOW_SHOWN);
 
   if (!window_) {
     throw std::runtime_error("Failed to create SDL window: " + std::string(SDL_GetError()));
@@ -35,11 +17,7 @@ Renderer::Renderer(const std::string& title) {
   if (!renderer_) {
     throw std::runtime_error("Failed to create SDL renderer: " + std::string(SDL_GetError()));
   }
-
-  std::cout << "Renderer initialized in fullscreen mode at resolution: "
-            << screen_width << "x" << screen_height << std::endl;
 }
-
 
 Renderer::~Renderer() {
   Shutdown();
