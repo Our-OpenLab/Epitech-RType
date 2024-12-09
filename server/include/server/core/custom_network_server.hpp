@@ -1,12 +1,16 @@
 #ifndef CUSTOM_NETWORK_SERVER_H_
 #define CUSTOM_NETWORK_SERVER_H_
 
+#include <cstdlib>  // Pour rand() et RAND_MAX
 #include <network/network_server.hpp>
-#include <shared/my_packet_types.hpp>
 #include <shared/network_messages.hpp>
 
 #include "event_queue.hpp"
 #include "server/engine/game_state.hpp"
+
+inline float random_float_simple(const float min, const float max) {
+  return min + static_cast<float>(rand()) / static_cast<float>(RAND_MAX / (max - min));
+}
 
 namespace network {
 template <typename PacketType>
@@ -17,57 +21,56 @@ public:
 protected:
   void on_client_accepted(
     const std::shared_ptr<ServerConnection<PacketType>>& connection) override {
-   const uint32_t client_id = connection->get_id();
+    const uint32_t client_id = connection->get_id();
 
-    constexpr float spawn_x = 100.0f;
-    constexpr float spawn_y = 100.0f;
+      constexpr float spawn_min_x = 50.0f;
+      constexpr float spawn_max_x = 750.0f;
+      constexpr float spawn_min_y = 50.0f;
+      constexpr float spawn_max_y = 550.0f;
 
-    if (const bool added = game_state_.AddPlayer(client_id, spawn_x, spawn_y)) {
-      PlayerAssign assign_message{static_cast<uint8_t>(client_id), spawn_x, spawn_y};
-      auto assign_packet = PacketFactory<PacketType>::create_packet(
-          PacketType::kPlayerAssign, assign_message);
-      connection->send(std::move(assign_packet));
+      float spawn_x = random_float_simple(spawn_min_x, spawn_max_x);
+      float spawn_y = random_float_simple(spawn_min_y, spawn_max_y);
 
-      PlayerJoin join_message{static_cast<uint8_t>(client_id), spawn_x, spawn_y};
-      auto join_packet = PacketFactory<PacketType>::create_packet(
-          PacketType::kPlayerJoin, join_message);
-      broadcast_to_others(connection, std::move(join_packet));
+    event_queue_.push([this, connection, client_id, spawn_x, spawn_y]() {
+        if (game_state_.AddPlayer(client_id, spawn_x, spawn_y)) {
+            PlayerAssign assign_message{static_cast<uint8_t>(client_id)};
+            auto assign_packet = PacketFactory<PacketType>::create_packet(
+                PacketType::kPlayerAssign, assign_message);
+            connection->send(std::move(assign_packet));
 
-      std::cout << "[Server][INFO] Player " << client_id << " successfully added and notified.\n";
-    } else {
-      std::cout << "[Server][WARN] Player " << client_id
-                << " could not be added (already exists). Disconnecting client.\n";
-      connection->disconnect();
-    }
-  }
-/*
-  void on_client_accepted(
-      const std::shared_ptr<ServerConnection<PacketType>>& connection) override {
-    uint32_t client_id = connection->get_id();
+            //PlayerJoin join_message{static_cast<uint8_t>(client_id), spawn_x, spawn_y};
+            //auto join_packet = PacketFactory<PacketType>::create_packet(
+            //    PacketType::kPlayerJoin, join_message);
+            //this->broadcast_to_others(connection, std::move(join_packet));
 
-    network::PlayerAssign assign_message { static_cast<uint8_t>(client_id) };
-
-    auto assign_packet = PacketFactory<PacketType>::create_packet(
-        PacketType::kPlayerAssign, assign_message);
-
-    connection->send(std::move(assign_packet));
-
-    std::cout << "[CustomServer][INFO] Sent ID " << client_id
-              << " to client after acceptance." << std::endl;
-
-    event_queue_.push([this, client_id]() {
-      game_state_.add_player(client_id, 100.0f, 100.0f, 0.1f);
-      std::cout << "[CustomServer][INFO] Player " << client_id << " added to the game.\n";
+            std::cout << "[Server][INFO] Player " << client_id
+                      << " successfully added and notified.\n";
+        } else {
+            std::cout << "[Server][WARN] Player " << client_id
+                      << " could not be added (already exists). Disconnecting client.\n";
+            connection->disconnect();
+        }
     });
+
+    std::cout << "[Server][INFO] Player " << client_id << " added to the event queue for processing.\n";
   }
-*/
+
   void on_client_disconnect(const std::shared_ptr<ServerConnection<PacketType>>& connection) override {
     uint8_t player_id = connection->get_id();
 
-    event_queue_.push([this, player_id]() {
-      game_state_.remove_player(player_id);
-      std::cout << "[CustomServer][INFO] Player " << static_cast<int>(player_id) << " removed from the game.\n";
-    });
+    event_queue_.push([this, connection, player_id]() {
+        game_state_.RemovePlayer(player_id);
+        std::cout << "[CustomServer][INFO] Player " << static_cast<int>(player_id)
+                  << " removed from the game.\n";
+
+        PlayerLeave leave_message{player_id};
+        auto leave_packet = PacketFactory<PacketType>::create_packet(
+            PacketType::kPlayerLeave, leave_message);
+        this->broadcast_to_others(connection, std::move(leave_packet));
+      });
+
+      std::cout << "[CustomServer][INFO] Player " << static_cast<int>(player_id)
+                << " scheduled for removal and notification.\n";
   }
 
   private:

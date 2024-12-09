@@ -5,7 +5,7 @@
 #include "client/core/message_dispatcher.hpp"
 
 Client::Client(const std::string& host, const std::string& port)
-    : renderer_(1920, 1080, "R-Type"),
+    : renderer_("R-Type"),
       network_client_(host, port),
       input_manager_([this](InputManager::PlayerInput&& input) {
         const network::PlayerInput network_input{
@@ -22,11 +22,11 @@ Client::Client(const std::string& host, const std::string& port)
         network_client_.send(std::move(input_packet));
       }, screen_manager_),
       game_state_(game_engine_.GetRegistry()) {
-  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
-    throw std::runtime_error("SDL_Init failed: " + std::string(SDL_GetError()));
-  }
+//  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
+//    throw std::runtime_error("SDL_Init failed: " + std::string(SDL_GetError()));
+//  }
 
-  screen_manager_.InitializeScreenDimensions();
+//  screen_manager_.InitializeScreenDimensions();
 
   game_engine_.InitializeSystems();
 

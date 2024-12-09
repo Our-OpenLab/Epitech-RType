@@ -63,16 +63,18 @@ void handle_player_input(network::Packet<network::MyPacketType>& packet,
 
 */
 
-void handle_player_input(network::Packet<network::MyPacketType>& packet,
+/*
+void HandlePlayerInput(network::Packet<network::MyPacketType>& packet,
                          const std::shared_ptr<network::ServerConnection<network::MyPacketType>>& connection,
                          GameState& game_state) {
   try {
     if (packet.body.size() != sizeof(network::PlayerInput)) {
-      std::cerr << "[MessageDispatcher] PlayerInput packet has insufficient data.\n";
+      std::cerr
+          << "[MessageDispatcher] PlayerInput packet has insufficient data.\n";
       return;
     }
 
-    auto input = network::PacketFactory<network::MyPacketType>::extract_data<network::PlayerInput>(packet);
+    const auto input = network::PacketFactory<network::MyPacketType>::extract_data<network::PlayerInput>(packet);
 
     auto& registry = game_state.get_registry();
     const auto entity = game_state.get_entity_by_player_id(input.player_id);
@@ -130,19 +132,87 @@ void handle_player_input(network::Packet<network::MyPacketType>& packet,
     std::cerr << "[MessageDispatcher][ERROR] Failed to process PlayerInput: " << e.what() << "\n";
   }
 }
+*/
 
+void HandlePlayerInput(network::Packet<network::MyPacketType>& packet,
+                         const std::shared_ptr<network::ServerConnection<network::MyPacketType>>& connection,
+                         GameState& game_state) {
+  try {
+    if (packet.body.size() != sizeof(network::PlayerInput)) {
+      std::cerr << "[MessageDispatcher] PlayerInput packet has insufficient data.\n";
+      return;
+    }
 
+    auto input = network::PacketFactory<network::MyPacketType>::extract_data<network::PlayerInput>(packet);
 
+    const auto entity = game_state.GetEntityByPlayerId(input.player_id);
 
+    if (entity == static_cast<Registry::entity_t>(-1)) {
+      std::cerr << "[MessageDispatcher] Player entity not found for player_id: "
+                << static_cast<int>(input.player_id) << "\n";
+      connection->disconnect();
+      return;
+    }
+
+    auto& registry = game_state.get_registry();
+    auto& actions = registry.get_components<Actions>();
+    auto& positions = registry.get_components<Position>();
+    auto& last_shot_times = registry.get_components<LastShotTime>();
+
+    if (entity < actions.size() && actions[entity].has_value()) {
+      actions[entity]->current_actions = input.actions;
+
+      if (input.actions & static_cast<uint16_t>(PlayerAction::Shoot)) {
+        if (entity < last_shot_times.size() && last_shot_times[entity].has_value() &&
+            entity < positions.size() && positions[entity].has_value()) {
+
+          auto& last_shot_time = last_shot_times[entity]->last_shot_time;
+
+          if (const auto current_time =
+                  std::chrono::milliseconds(input.timestamp);
+              current_time - last_shot_time >= std::chrono::milliseconds(200)) {
+            last_shot_time = current_time;
+
+            const auto x = positions[entity]->x;
+            const auto y = positions[entity]->y;
+
+            game_state.AddProjectile(input.player_id, x, y);
+
+            std::cout << "[MessageDispatcher] Player " << static_cast<int>(input.player_id)
+                      << " fired a projectile from position (" << x << ", " << y << ").\n";
+          }
+        }
+      }
+    }
+  } catch (const std::exception& e) {
+    std::cerr << "[MessageDispatcher][ERROR] Failed to process PlayerInput: " << e.what() << "\n";
+  }
+}
 
 const std::array<MessageDispatcher::Handler, static_cast<size_t>(network::MyPacketType::kMaxTypes)> MessageDispatcher::handlers_ = {
   default_handler,
-  default_handler,
+  HandlePlayerInput,
   default_handler,
   handle_ping,
   default_handler,
-  handle_player_input,
+  //handle_player_input,
   default_handler, // UpdatePosition
   default_handler, // PlayerAssign
 };
 }
+
+/*
+enum class MyPacketType : uint32_t {
+  kPlayerAssign,       // Server -> Client: Assign an ID to the player
+  kPlayerInput,        // Client -> Server: Player's input data
+  kUpdatePosition,     // Server -> Client: Updated position of a player
+  kUpdateProjectile,   // Server -> Client: Updated position of a projectile
+  kPlayerJoin,         // Server -> Client: Notification of a new player joining
+  kPlayerLeave,        // Server -> Client: Notification of a player leaving
+  kDisconnect,         // Client -> Server: Player's voluntary disconnection
+  kPing,               // Ping packet
+  kPong,               // Pong packet
+  kMaxTypes            // Maximum number of packet types
+};
+}
+*/

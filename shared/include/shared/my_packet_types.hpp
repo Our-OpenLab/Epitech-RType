@@ -9,6 +9,7 @@ enum class MyPacketType : uint32_t {
   kPlayerInput,        // Client -> Server: Player's input data
   kUpdatePosition,     // Server -> Client: Updated position of a player
   kUpdateProjectile,   // Server -> Client: Updated position of a projectile
+  kRemoveProjectile,   // Server -> Client: Remove a projectile
   kPlayerJoin,         // Server -> Client: Notification of a new player joining
   kPlayerLeave,        // Server -> Client: Notification of a player leaving
   kDisconnect,         // Client -> Server: Player's voluntary disconnection

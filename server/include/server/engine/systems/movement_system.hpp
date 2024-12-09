@@ -32,13 +32,11 @@ inline void movement_system(Registry& registry, const float delta_time) {
         const auto& [current_actions] = *act_opt;
         auto& [is_dirty] = *dirty_opt;
 
-        // Pré-calcul des commandes utilisateur
-        bool move_right = current_actions & PlayerAction::MoveRight;
-        bool move_left = current_actions & PlayerAction::MoveLeft;
-        bool move_down = current_actions & PlayerAction::MoveDown;
-        bool move_up = current_actions & PlayerAction::MoveUp;
+        const bool move_right = current_actions & PlayerAction::MoveRight;
+        const bool move_left = current_actions & PlayerAction::MoveLeft;
+        const bool move_down = current_actions & PlayerAction::MoveDown;
+        const bool move_up = current_actions & PlayerAction::MoveUp;
 
-        // Appliquer friction et opposition
         auto apply_friction_and_handle_opposites = [&](float& velocity, bool positive_command, bool negative_command) {
             if (positive_command && negative_command) {
                 velocity *= 1.0f - kFriction; // Neutraliser
@@ -49,7 +47,6 @@ inline void movement_system(Registry& registry, const float delta_time) {
                     velocity += kFriction * std::abs(velocity);
                 }
 
-                // Clamp si proche de zéro
                 if (velocity * velocity < kMovementThresholdSquared) velocity = 0.0f;
             }
         };
@@ -57,7 +54,6 @@ inline void movement_system(Registry& registry, const float delta_time) {
         apply_friction_and_handle_opposites(vx, move_right, move_left);
         apply_friction_and_handle_opposites(vy, move_down, move_up);
 
-        // Appliquer l'accélération
         auto apply_acceleration = [&](float& velocity, bool move_positive, bool move_negative) {
             if (move_positive) velocity += delta_acceleration;
             if (move_negative) velocity -= delta_acceleration;
@@ -66,22 +62,19 @@ inline void movement_system(Registry& registry, const float delta_time) {
         apply_acceleration(vx, move_right, move_left);
         apply_acceleration(vy, move_down, move_up);
 
-        // Limitation de la vitesse
-        const float speed_squared = vx * vx + vy * vy;
-        if (speed_squared > kDefaultMaxSpeed * kDefaultMaxSpeed) {
+        if (const float speed_squared = vx * vx + vy * vy;
+            speed_squared > kDefaultMaxSpeed * kDefaultMaxSpeed) {
             const float scale = kDefaultMaxSpeed / std::sqrt(speed_squared);
             vx *= scale;
             vy *= scale;
         }
 
-        // Mise à jour de la position
         const float old_x = x;
         const float old_y = y;
 
         x += vx * delta_time;
         y += vy * delta_time;
 
-        // Marquer comme "dirty" si la position a changé
         if ((x - old_x) * (x - old_x) + (y - old_y) * (y - old_y) > kMovementThresholdSquared) {
             is_dirty = true;
         }

@@ -8,8 +8,6 @@
 namespace network {
 struct PlayerAssign {
   uint8_t player_id;
-  float x;
-  float y;
 };
 
 struct PlayerInput {
@@ -43,6 +41,11 @@ struct PlayerJoin {
 struct PlayerLeave {
   uint8_t player_id;
 };
+
+struct RemoveProjectile {
+  uint8_t projectile_id;
+};
+
 }
 
 #pragma pack(pop)

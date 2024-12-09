@@ -11,7 +11,7 @@ namespace game {
 template <typename PacketType>
 GameServer<PacketType>::GameServer(uint16_t port)
     : network_server_(port, game_state_, event_queue_),
-      game_state_(game_engine_.GetRegistry()) {}
+      game_state_(game_engine_.GetRegistry(), network_server_) {}
 
 template <typename PacketType>
 GameServer<PacketType>::~GameServer() {
@@ -57,10 +57,10 @@ void GameServer<PacketType>::Run() {
     const float delta_time =
         std::chrono::duration<float>(current_time - next_tick_time).count();
 
-    ProcessPackets(kMaxPacketsPerTick, kMaxPacketProcessingTime);
     event_queue_.process();
+    ProcessPackets(kMaxPacketsPerTick, kMaxPacketProcessingTime);
 
-    game_engine_.Update(delta_time);
+    game_engine_.Update(delta_time, game_state_);
 
     if (tick_counter % kUpdateFrequencyTicks == 0) {
       const uint32_t timestamp = static_cast<uint32_t>(

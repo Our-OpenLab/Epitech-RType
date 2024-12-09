@@ -4,6 +4,7 @@
 #include <ecs/registry.hpp>
 
 #include "server/engine/ecs_alias.hpp"
+#include "server/engine/game_state.hpp"
 
 class GameEngine {
  public:
@@ -12,7 +13,7 @@ class GameEngine {
   ~GameEngine() = default;
 
   void InitializeSystems();
-  void Update(float delta_time);
+  void Update(float delta_time, GameState& game_state_);
 
   Registry& GetRegistry() { return registry_; }
 

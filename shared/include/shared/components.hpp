@@ -34,7 +34,7 @@ struct Actions {
 };
 
 struct DirtyFlag {
-    bool is_dirty{false};
+    bool is_dirty{true};
 };
 
 struct Projectile {

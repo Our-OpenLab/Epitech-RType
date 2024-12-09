@@ -3,112 +3,99 @@
 
 namespace client {
 
-void GameState::AddPlayer(uint8_t id, float x, float y) {
-  std::cout << "[GameState][DEBUG] Adding player " << static_cast<int>(id)
-            << " at position (" << x << ", " << y << ")\n";
+bool GameState::AddPlayer(const uint8_t player_id, const float x, const float y) {
+  if (player_entities_.contains(player_id)) {
+    std::cout << "[GameState][WARN] Player ID " << static_cast<int>(player_id)
+              << " already exists. Skipping addition.\n";
+    return false;
+  }
 
-  auto entity = registry_.spawn_entity();
+  const auto entity = registry_.spawn_entity();
+
   registry_.add_component<Position>(entity, {x, y});
-  registry_.add_component<Actions>(entity, {});
-  registry_.add_component<PositionHistory>(entity, {});
-  player_entities_[id] = entity;
+  registry_.add_component<Player>(entity, Player{player_id});
+  registry_.add_component<DirtyFlag>(entity, DirtyFlag{true});
 
-  std::cout << "[GameState] Added player " << static_cast<int>(id)
-            << " at position (" << x << ", " << y << ")\n";
+  player_entities_[player_id] = entity;
+
+  std::cout << "[GameState][INFO] Added player " << static_cast<int>(player_id)
+            << " at position (" << x << ", " << y << ").\n";
+
+  return true;
 }
 
-Registry::entity_t GameState::GetPlayer(uint8_t id) const {
-  auto it = player_entities_.find(id);
+Registry::entity_t GameState::GetPlayer(const uint8_t player_id) const {
+  const auto it = player_entities_.find(player_id);
   if (it == player_entities_.end()) {
-    throw std::runtime_error("Player ID not found in GameState");
+    std::cout << "[GameState][WARN] Player ID " << static_cast<int>(player_id)
+              << " not found in GameState.\n";
+    return InvalidEntity;
   }
   return it->second;
 }
 
-void GameState::RemovePlayer(uint8_t id) {
-  auto it = player_entities_.find(id);
-  if (it != player_entities_.end()) {
-    const auto player_entity = it->second;
-
-    // Supprimer les projectiles associés
-    RemoveProjectiles(id);
-
-    // Supprimer l'entité du joueur
-    registry_.kill_entity(player_entity);
-    player_entities_.erase(id);
-
-    std::cout << "[GameState] Removed player " << static_cast<int>(id) << "\n";
-  }
-}
-
-void GameState::AddProjectile(uint8_t projectile_id, uint8_t owner_id, float x, float y) {
-  // Vérifier si le projectile existe déjà
-  if (projectile_entities_.find(projectile_id) != projectile_entities_.end()) {
-    std::cerr << "[GameState][WARNING] Projectile with ID " << projectile_id << " already exists.\n";
+void GameState::RemovePlayer(const uint8_t player_id) {
+  const auto it = player_entities_.find(player_id);
+  if (it == player_entities_.end()) {
+    std::cout << "[GameState][WARN] Player ID " << static_cast<int>(player_id)
+              << " not found. Skipping removal.\n";
     return;
   }
 
-  // Créer une nouvelle entité pour le projectile
-  auto entity = registry_.spawn_entity();
+  const auto player_entity = it->second;
 
-  // Ajouter les composants nécessaires
+  registry_.kill_entity(player_entity);
+  player_entities_.erase(player_id);
+
+  std::cout << "[GameState][INFO] Removed player " << static_cast<int>(player_id) << "\n";
+}
+
+void GameState::AddProjectile(const uint8_t projectile_id,
+                              const uint8_t owner_id,
+                              const float x,
+                              const float y) {
+  if (projectile_entities_.contains(projectile_id)) {
+    std::cerr << "[GameState][WARNING] Projectile with ID " << projectile_id
+              << " already exists.\n";
+    return;
+  }
+
+  const auto entity = registry_.spawn_entity();
+
   registry_.emplace_component<Position>(entity, Position{x, y});
   registry_.emplace_component<Projectile>(entity, Projectile{owner_id, projectile_id});
-  //registry_.emplace_component<DirtyFlag>(entity, DirtyFlag{false});
 
-  // Associer le projectile à son ID dans le GameState
   projectile_entities_[projectile_id] = entity;
 
   std::cout << "[GameState][INFO] Added projectile with ID " << projectile_id
             << " for Owner " << static_cast<int>(owner_id) << " at position (" << x << ", " << y << ").\n";
 }
 
-
-void GameState::RemoveProjectile(uint8_t projectile_id) {
-  auto it = projectile_entities_.find(projectile_id);
-  if (it != projectile_entities_.end()) {
-    auto entity = it->second;
-    registry_.kill_entity(entity);
-    projectile_entities_.erase(projectile_id);
-
-    // Retirer des projectiles du propriétaire
-    for (auto& [owner_id, projectiles] : projectiles_by_owner_) {
-      if (projectiles.erase(projectile_id)) {
-        std::cout << "[GameState] Removed projectile " << projectile_id
-                  << " from owner " << static_cast<int>(owner_id) << "\n";
-        break;
-      }
-    }
-  }
-}
-
-void GameState::RemoveProjectiles(uint8_t owner_id) {
-  auto it = projectiles_by_owner_.find(owner_id);
-  if (it != projectiles_by_owner_.end()) {
-    for (auto projectile_id : it->second) {
-      auto entity = projectile_entities_.at(projectile_id);
-      registry_.kill_entity(entity);
-      projectile_entities_.erase(projectile_id);
-
-      std::cout << "[GameState] Removed projectile " << projectile_id
-                << " for owner " << static_cast<int>(owner_id) << "\n";
-    }
-    projectiles_by_owner_.erase(owner_id);
-  }
-}
-
-const std::unordered_set<uint8_t>& GameState::GetProjectilesByOwner(uint8_t owner_id) const {
-  static const std::unordered_set<uint8_t> empty_set;
-  auto it = projectiles_by_owner_.find(owner_id);
-  return (it != projectiles_by_owner_.end()) ? it->second : empty_set;
-}
-
-Registry::entity_t GameState::GetProjectileEntity(uint8_t projectile_id) const {
-  auto it = projectile_entities_.find(projectile_id);
+Registry::entity_t GameState::GetProjectileEntity(
+    const uint8_t projectile_id) const {
+  const auto it = projectile_entities_.find(projectile_id);
   if (it == projectile_entities_.end()) {
     return static_cast<Registry::entity_t>(-1);
   }
   return it->second;
 }
+
+void GameState::RemoveProjectile(const uint8_t projectile_id) {
+  const auto it = projectile_entities_.find(projectile_id);
+  if (it == projectile_entities_.end()) {
+    std::cerr << "[GameState][WARN] Projectile ID " << static_cast<int>(projectile_id)
+              << " not found. Skipping removal.\n";
+    return;
+  }
+
+  const auto projectile_entity = it->second;
+
+  registry_.kill_entity(projectile_entity);
+
+  projectile_entities_.erase(projectile_id);
+
+  std::cout << "[GameState][INFO] Removed projectile with ID " << static_cast<int>(projectile_id) << "\n";
+}
+
 
 }  // namespace client

@@ -4,6 +4,6 @@
 #include <ecs/registry.hpp>
 #include <shared/components.hpp>
 
-using Registry = ecs::Registry<Position, Actions, PositionHistory, Projectile>;
+using Registry = ecs::Registry<Player, Position, Projectile, DirtyFlag>;
 
 #endif // ECS_ALIAS_HPP_

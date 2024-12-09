@@ -1,20 +1,20 @@
 #include "client/engine/game_engine.hpp"
 
-#include <client/engine/systems/movement_system.hpp>
 #include <ecs/zipper.hpp>
 
 namespace client {
 
 void GameEngine::InitializeSystems() {
+  registry_.register_component<Player>();
   registry_.register_component<Position>();
-  registry_.register_component<Actions>();
-  registry_.register_component<PositionHistory>();
+  registry_.register_component<DirtyFlag>();
   registry_.register_component<Projectile>();
 
 //  registry_.add_system([](Registry& registry, const float delta_time) {
 //    movement_system(registry, delta_time);
 //  });
 
+  /*
   registry_.add_system([](Registry& registry, float _,
                           const std::chrono::milliseconds render_time) {
     auto& positions = registry.get_components<Position>();
@@ -32,6 +32,7 @@ void GameEngine::InitializeSystems() {
         }
     }
   });
+  */
 }
 
 void GameEngine::Update(const float delta_time, const std::chrono::milliseconds render_time) {

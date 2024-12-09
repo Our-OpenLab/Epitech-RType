@@ -7,10 +7,10 @@
 
 class Renderer {
 public:
-  Renderer(int width, int height, const std::string& title);
-  ~Renderer();
+  explicit Renderer(const std::string& title);
+ ~Renderer();
 
-  void DrawGame(client::GameState& game_state) const;
+  void DrawGame(const client::GameState& game_state) const;
   void Clear() const;
   void Present() const;
   void Shutdown();

@@ -1,20 +1,6 @@
 #include <server/engine/game_state.hpp>
-
-/*
-void GameState::add_player(const uint8_t player_id, const float x,
-                           const float y, const float speed) {
-  const auto entity = registry_.spawn_entity();
-
-  registry_.add_component<Player>(entity, {player_id});
-  registry_.add_component<Position>(entity, {x, y});
-  registry_.add_component<Velocity>(entity, {});
-  //registry_.add_component<Health>(entity, {100});
-  registry_.add_component<Actions>(entity, {});
-  registry_.add_component<DirtyFlag>(entity, {});
-
-  player_entities_[player_id] = entity;
-}
-*/
+#include <shared/network_messages.hpp>
+#include <shared/my_packet_types.hpp>
 
 bool GameState::AddPlayer(const uint8_t player_id, const float x, const float y) {
   if (player_entities_.contains(player_id)) {
@@ -28,7 +14,8 @@ bool GameState::AddPlayer(const uint8_t player_id, const float x, const float y)
   registry_.emplace_component<Player>(entity, Player{player_id});
   registry_.emplace_component<Position>(entity, Position{x, y});
   registry_.emplace_component<Actions>(entity, Actions{0});
-  registry_.emplace_component<DirtyFlag>(entity, DirtyFlag{true});
+  registry_.emplace_component<Velocity>(entity, Velocity{});
+  registry_.emplace_component<DirtyFlag>(entity, DirtyFlag{});
   registry_.emplace_component<LastShotTime>(entity, LastShotTime{});
 
   player_entities_[player_id] = entity;
@@ -39,54 +26,68 @@ bool GameState::AddPlayer(const uint8_t player_id, const float x, const float y)
   return true;
 }
 
-
-Player& GameState::get_player(uint8_t id) const {
-  const auto it = player_entities_.find(id);
-  if (it == player_entities_.end()) {
-    throw std::runtime_error("Player with ID " + std::to_string(id) +
-                             " not found.");
-  }
-
-  const auto entity = it->second;
-  auto& players = registry_.get_components<Player>();
-
-  if (!players[entity].has_value()) {
-    throw std::runtime_error("Player entity does not have a Player component.");
-  }
-
-  return *players[entity];
-}
-
-Registry::entity_t GameState::get_entity_by_player_id(const uint8_t player_id) const {
+void GameState::RemovePlayer(const uint8_t player_id) {
   if (!player_entities_.contains(player_id)) {
-    return static_cast<Registry::entity_t>(-1);
-  }
-  return player_entities_.at(player_id);
-}
-
-void GameState::remove_player(const uint8_t id) {
-  if (!player_entities_.contains(id)) {
-    throw std::runtime_error("Player ID not found");
+    std::cout << "[GameState][WARN] Player ID " << static_cast<int>(player_id)
+              << " does not exist. Skipping removal.\n";
+    return;
   }
 
-  const auto entity = player_entities_.at(id);
+  const auto entity = player_entities_[player_id];
 
   registry_.kill_entity(entity);
 
-  player_entities_.erase(id);
+  player_entities_.erase(player_id);
 
-  std::cout << "[GameState] Player " << static_cast<int>(id) << " removed.\n";
+  std::cout << "[GameState][INFO] Player " << static_cast<int>(player_id)
+            << " successfully removed.\n";
 }
 
+Registry::entity_t GameState::GetEntityByPlayerId(
+    const uint8_t player_id) const {
+  if (const auto it = player_entities_.find(player_id);
+      it != player_entities_.end()) {
+    return it->second;
+  }
 
-std::vector<uint8_t> GameState::get_all_player_ids() const {
-  //std::vector<uint8_t> ids;
-  //auto& players = registry_.get_components<Player>();
-  //for (const auto& player_opt : players) {
-  //  if (player_opt.has_value()) {
-  //    ids.push_back(player_opt->id);
-  //  }
-  //}
-  //return ids;
-  return {};
+  return static_cast<Registry::entity_t>(-1);
+}
+
+void GameState::AddProjectile(const uint8_t player_id, const float x, const float y) {
+  const uint8_t projectile_id = next_projectile_id_++;
+  const auto projectile_entity = registry_.spawn_entity();
+
+  registry_.emplace_component<Projectile>(projectile_entity, Projectile{player_id, projectile_id});
+  registry_.emplace_component<Position>(projectile_entity, Position{x, y});
+  registry_.emplace_component<Velocity>(projectile_entity, Velocity{6200.0f, 0.0f});
+  registry_.emplace_component<DirtyFlag>(projectile_entity, DirtyFlag{true});
+
+  projectile_entities_[projectile_id] = ProjectileData{player_id, projectile_entity};
+
+  std::cout << "[GameState][INFO] Added projectile with ID " << static_cast<int>(projectile_id)
+            << " for player " << static_cast<int>(player_id) << " at position ("
+            << x << ", " << y << ") with velocity (" << 6200.0f << ", " << 0.0f << ").\n";
+}
+
+void GameState::RemoveProjectile(const uint8_t projectile_id) {
+  if (const auto it = projectile_entities_.find(projectile_id);
+      it != projectile_entities_.end()) {
+    const auto projectile_entity = it->second.entity;
+
+    registry_.kill_entity(projectile_entity);
+
+    projectile_entities_.erase(it);
+
+    const network::RemoveProjectile remove_message{projectile_id};
+    auto remove_packet = network::PacketFactory<network::MyPacketType>::create_packet(
+        network::MyPacketType::kRemoveProjectile, remove_message);
+    network_server_.broadcast(remove_packet);
+
+    std::cout << "[GameState][INFO] Removed projectile with ID "
+              << static_cast<int>(projectile_id) << "\n";
+      } else {
+        std::cout << "[GameState][WARN] Projectile ID "
+                  << static_cast<int>(projectile_id)
+                  << " does not exist. Skipping removal.\n";
+      }
 }
