@@ -8,6 +8,7 @@
 #include <ranges>
 #include <typeindex>
 #include <unordered_map>
+#include <variant>
 
 #include "sparse_array.hpp"
 
