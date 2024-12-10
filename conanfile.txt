@@ -2,6 +2,10 @@
 asio/1.30.2
 sdl/2.30.9
 
+opengl/system
+glew/2.2.0
+glm/cci.20230113
+
 [generators]
 CMakeDeps
 CMakeToolchain

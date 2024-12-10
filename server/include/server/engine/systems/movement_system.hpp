@@ -6,6 +6,11 @@
 
 #include "server/engine/ecs_alias.hpp"
 
+constexpr float kArenaLeft = 0.0f;
+constexpr float kArenaRight = 2000.0f;
+constexpr float kArenaTop = 0.0f;
+constexpr float kArenaBottom = 2000.0f;
+
 constexpr float kDefaultMaxSpeed = 2200.0f;
 constexpr float kDefaultAcceleration = 22000.0f;
 constexpr float kFriction = 0.1f;
@@ -74,6 +79,23 @@ inline void movement_system(Registry& registry, const float delta_time) {
 
         x += vx * delta_time;
         y += vy * delta_time;
+
+        // Appliquer les limites de l'arène
+        if (x < kArenaLeft) {
+            x = kArenaLeft;
+            vx = 0.0f; // Stopper le mouvement dans cette direction
+        } else if (x > kArenaRight) {
+            x = kArenaRight;
+            vx = 0.0f;
+        }
+
+        if (y < kArenaTop) {
+            y = kArenaTop;
+            vy = 0.0f;
+        } else if (y > kArenaBottom) {
+            y = kArenaBottom;
+            vy = 0.0f;
+        }
 
         if ((x - old_x) * (x - old_x) + (y - old_y) * (y - old_y) > kMovementThresholdSquared) {
             is_dirty = true;

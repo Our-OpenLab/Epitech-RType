@@ -3,11 +3,12 @@
 
 namespace client {
 
-bool GameState::AddPlayer(const uint8_t player_id, const float x, const float y) {
+Registry::entity_t GameState::AddPlayer(const uint8_t player_id, const float x,
+                                        const float y) {
   if (player_entities_.contains(player_id)) {
     std::cout << "[GameState][WARN] Player ID " << static_cast<int>(player_id)
               << " already exists. Skipping addition.\n";
-    return false;
+    return InvalidEntity;
   }
 
   const auto entity = registry_.spawn_entity();
@@ -21,7 +22,7 @@ bool GameState::AddPlayer(const uint8_t player_id, const float x, const float y)
   std::cout << "[GameState][INFO] Added player " << static_cast<int>(player_id)
             << " at position (" << x << ", " << y << ").\n";
 
-  return true;
+  return entity;
 }
 
 Registry::entity_t GameState::GetPlayer(const uint8_t player_id) const {

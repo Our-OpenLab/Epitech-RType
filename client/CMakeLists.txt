@@ -17,7 +17,10 @@ set(SOURCES
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 find_package(SDL2 REQUIRED)
+find_package(GLEW REQUIRED)
+find_package(GLM REQUIRED)
+find_package(OpenGL REQUIRED)
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE network_lib ecs_lib shared SDL2::SDL2)
+target_link_libraries(${PROJECT_NAME} PRIVATE network_lib ecs_lib shared SDL2::SDL2 GLEW::GLEW OpenGL::GL glm::glm)

@@ -13,8 +13,8 @@ struct PlayerAssign {
 struct PlayerInput {
   uint8_t player_id;
   uint16_t actions;
-  float mouse_x;
-  float mouse_y;
+  float dir_x;
+  float dir_y;
   uint32_t timestamp;
 };
 

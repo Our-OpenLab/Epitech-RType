@@ -24,13 +24,17 @@ void MessageDispatcher::HandlePlayerAssign(const network::Packet<network::MyPack
 
   std::cout << "[Server][INFO] Assigned Player ID: " << static_cast<int>(client.client_id_) << std::endl;
 
- // if (!client.GetGameState().AddPlayer(client.client_id_, x, y)) {
- //   std::cerr << "[Server][ERROR] Failed to add Player ID: " << static_cast<int>(client.client_id_)
- //             << " to GameState. Player might already exist.\n";
- //
- //   client.Shutdown();
- //   return;
- // }
+  const auto entity = client.GetGameState().AddPlayer(client.client_id_, 0, 0);
+
+  if (entity == client::GameState::InvalidEntity) {
+    std::cerr << "[Server][ERROR] Failed to add Player ID: " << static_cast<int>(client.client_id_)
+              << " to GameState. Player might already exist.\n";
+
+    client.Shutdown();
+    return;
+  }
+
+  client.GetGameState().SetLocalPlayerEntity(entity);
 
   std::cout << "[Server][INFO] Player " << static_cast<int>(client.client_id_)
             << " successfully added to GameState.\n";

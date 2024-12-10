@@ -53,20 +53,25 @@ Registry::entity_t GameState::GetEntityByPlayerId(
   return static_cast<Registry::entity_t>(-1);
 }
 
-void GameState::AddProjectile(const uint8_t player_id, const float x, const float y) {
+void GameState::AddProjectile(const uint8_t player_id, const float x, const float y,
+                              const float dir_x, const float dir_y) {
   const uint8_t projectile_id = next_projectile_id_++;
   const auto projectile_entity = registry_.spawn_entity();
 
+  //constexpr float projectile_speed = 6200.0f;
+  //const float velocity_x = dir_x * projectile_speed;
+  //const float velocity_y = dir_y * projectile_speed;
+
   registry_.emplace_component<Projectile>(projectile_entity, Projectile{player_id, projectile_id});
   registry_.emplace_component<Position>(projectile_entity, Position{x, y});
-  registry_.emplace_component<Velocity>(projectile_entity, Velocity{6200.0f, 0.0f});
+  registry_.emplace_component<Velocity>(projectile_entity, Velocity{dir_x, dir_y});
   registry_.emplace_component<DirtyFlag>(projectile_entity, DirtyFlag{true});
 
   projectile_entities_[projectile_id] = ProjectileData{player_id, projectile_entity};
 
   std::cout << "[GameState][INFO] Added projectile with ID " << static_cast<int>(projectile_id)
             << " for player " << static_cast<int>(player_id) << " at position ("
-            << x << ", " << y << ") with velocity (" << 6200.0f << ", " << 0.0f << ").\n";
+            << x << ", " << y << ") with velocity (" << dir_x << ", " << dir_y << ").\n";
 }
 
 void GameState::RemoveProjectile(const uint8_t projectile_id) {

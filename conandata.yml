@@ -2,5 +2,8 @@
 # To keep your changes, remove these comment lines, but the plugin won't be able to modify your requirements
 
 requirements:
+  - "opengl/system"
+  - "glew/2.2.0"
+  - "glm/1.0.1"
   - "sdl/2.30.9"
   - "asio/1.32.0"

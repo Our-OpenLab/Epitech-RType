@@ -2,6 +2,8 @@
 #define SCREEN_MANAGER_HPP_
 
 #include <SDL.h>
+#include <iostream>
+#include <utility>
 
 class ScreenManager {
 public:
@@ -31,12 +33,20 @@ public:
     return {screen_width_, screen_height_};
   }
 
-  std::pair<float, float> NormalizeMousePosition(const int mouse_x,
-                                                 const int mouse_y) const {
-    return {
-      static_cast<float>(mouse_x) / screen_width_,
-      static_cast<float>(mouse_y) / screen_height_
-  };
+  std::pair<float, float> MouseToWorldCoordinates(const float mouse_x,
+                                                  const float mouse_y,
+                                                  const float player_x,
+                                                  const float player_y) {
+    constexpr float screen_width = 1280.0f;
+    constexpr float screen_height = 960.0f;
+
+    constexpr float half_screen_width = screen_width / 2.0f;
+    constexpr float half_screen_height = screen_height / 2.0f;
+
+    float world_mouse_x = player_x - half_screen_width + (mouse_x / screen_width) * screen_width;
+    float world_mouse_y = player_y - half_screen_height + (mouse_y / screen_height) * screen_height;
+
+    return {world_mouse_x, world_mouse_y};
   }
 
 private:

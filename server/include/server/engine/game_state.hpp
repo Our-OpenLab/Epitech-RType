@@ -20,7 +20,8 @@ public:
   void RemovePlayer(uint8_t player_id);
   Registry::entity_t GetEntityByPlayerId(uint8_t player_id) const;
 
-  void AddProjectile(uint8_t player_id, float x, float y);
+  void AddProjectile(uint8_t player_id, float x, float y, float dir_x,
+                     float dir_y);
   void RemoveProjectile(uint8_t projectile_id);
 
   [[nodiscard]] Registry& get_registry() const {

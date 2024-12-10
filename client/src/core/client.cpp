@@ -5,14 +5,14 @@
 #include "client/core/message_dispatcher.hpp"
 
 Client::Client(const std::string& host, const std::string& port)
-  : renderer_(1920, 1080, "R-Type"),
+  : renderer_(1280, 960, "R-Type"),
       network_client_(host, port),
       input_manager_([this](InputManager::PlayerInput&& input) {
         const network::PlayerInput network_input{
           .player_id = client_id_,
           .actions = input.actions,
-          .mouse_x = input.mouse_x,
-          .mouse_y = input.mouse_y,
+          .dir_x = input.dir_x,
+          .dir_y = input.dir_y,
           .timestamp = input.timestamp
         };
 
@@ -26,7 +26,7 @@ Client::Client(const std::string& host, const std::string& port)
 //    throw std::runtime_error("SDL_Init failed: " + std::string(SDL_GetError()));
 //  }
 
-//  screen_manager_.InitializeScreenDimensions();
+  screen_manager_.InitializeScreenDimensions();
 
   game_engine_.InitializeSystems();
 
@@ -89,6 +89,7 @@ void Client::Run() {
 }
 */
 
+
 void Client::Run() {
     uint64_t tick_counter = 0;
     uint64_t last_ping_tick = 0;
@@ -102,23 +103,23 @@ void Client::Run() {
         const auto render_time = std::chrono::duration_cast<std::chrono::milliseconds>(
         tick_start_time.time_since_epoch()) - kRenderDelay;
 
-        std::cout << "[Client][DEBUG] Tick: " << tick_counter
-                  << ", Render time: " << render_time.count() << " ms\n";
+     //   std::cout << "[Client][DEBUG] Tick: " << tick_counter
+     //             << ", Render time: " << render_time.count() << " ms\n";
 
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 is_running_ = false;
             }
-
-            input_manager_.HandleEvent(event, tick_start_time);
+            const auto [x, y] = game_state_.GetLocalPlayerPosition();
+            input_manager_.HandleEvent(event, tick_start_time, x, y);
         }
 
         const auto packet_start_time = std::chrono::steady_clock::now();
         ProcessPackets(kMaxPacketsPerTick, kMaxPacketProcessingTime);
         const auto packet_time = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - packet_start_time).count();
-        std::cout << "[Client][DEBUG] Packet processing time: " << packet_time << " ms\n";
+      //  std::cout << "[Client][DEBUG] Packet processing time: " << packet_time << " ms\n";
 
         if (tick_counter - last_ping_tick >= kPingFrequencyTicks) {
             SendPing(tick_counter);
@@ -129,15 +130,20 @@ void Client::Run() {
         game_engine_.Update(delta_time, render_time);
         const auto update_time = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - update_start_time).count();
-        std::cout << "[Client][DEBUG] Update time: " << update_time << " ms\n";
+     //   std::cout << "[Client][DEBUG] Update time: " << update_time << " ms\n";
 
         const auto render_start_time = std::chrono::steady_clock::now();
-        renderer_.Clear();
-        renderer_.DrawGame(game_state_);
-        renderer_.Present();
+//        renderer_.Clear();
+//        renderer_.DrawGame(game_state_);
+//        renderer_.Present();
+      renderer_.UpdateCamera(game_state_);
+      renderer_.Clear();
+      renderer_.DrawGame(game_state_);
+      renderer_.Present();
+
         const auto render_time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - render_start_time).count();
-        std::cout << "[Client][DEBUG] Render time: " << render_time_ms << " ms\n";
+      //  std::cout << "[Client][DEBUG] Render time: " << render_time_ms << " ms\n";
 
         ++tick_counter;
         next_tick_time += kTickDuration;
