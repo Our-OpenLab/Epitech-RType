@@ -3,6 +3,7 @@
 
 #include <ecs/zipper.hpp>
 #include <shared/player_actions.hpp>
+#include <cmath>
 
 #include "server/engine/ecs_alias.hpp"
 
