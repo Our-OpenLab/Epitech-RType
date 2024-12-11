@@ -136,7 +136,7 @@ void Client::Run() {
 //        renderer_.Clear();
 //        renderer_.DrawGame(game_state_);
 //        renderer_.Present();
-      //renderer_.UpdateCamera(game_state_);
+      renderer_.UpdateCamera(game_state_);
       renderer_.Clear();
       renderer_.DrawGame(game_state_);
       renderer_.Present();

@@ -27,6 +27,12 @@ public:
   void DrawRectangle(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color) const;
   void DrawNeonRectangleShader(const glm::vec2& position, const glm::vec2& size, const glm::vec3& neon_color, float glow_intensity, float glow_radius) const;
   void DrawNeonRectangle(const glm::vec2& position, const glm::vec2& size) const;
+  void DrawVisibleBar(const glm::vec2& position, const glm::vec2& size) const;
+  void DrawHorizontalNeonBar(const glm::vec2& map_position, const glm::vec2& size) const;
+  void DrawVerticalNeonBar(const glm::vec2& map_position, const glm::vec2& size) const;
+  void DrawVisibleHorizontalBar(const glm::vec2& position, const glm::vec2& size) const;
+  void DrawVisibleVerticalBar(const glm::vec2& position, const glm::vec2& size) const;
+  void DrawStarguy(const glm::vec2& map_position, const glm::vec2& size) const;
 
 
   void Clear() const;
@@ -45,7 +51,9 @@ private:
   GLuint vbo_{0};
   GLuint shader_program_{0};
 
-  GLuint neon_shader_program_{0};
+  GLuint neon_bar_horizontal_program_{0};
+  GLuint neon_bar_vertical_program_{0};
+  GLuint starguy_program_{0};
 
   void InitOpenGL();
   GLuint LoadShaders(const char* vertex_source, const char* fragment_source);

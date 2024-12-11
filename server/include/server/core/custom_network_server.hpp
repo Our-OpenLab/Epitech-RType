@@ -28,8 +28,8 @@ protected:
       constexpr float spawn_min_y = 50.0f;
       constexpr float spawn_max_y = 550.0f;
 
-      float spawn_x = random_float_simple(spawn_min_x, spawn_max_x);
-      float spawn_y = random_float_simple(spawn_min_y, spawn_max_y);
+      float spawn_x = 100;//random_float_simple(spawn_min_x, spawn_max_x);
+      float spawn_y = 100;random_float_simple(spawn_min_y, spawn_max_y);
 
     event_queue_.push([this, connection, client_id, spawn_x, spawn_y]() {
         if (game_state_.AddPlayer(client_id, spawn_x, spawn_y)) {
