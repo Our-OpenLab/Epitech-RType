@@ -24,8 +24,8 @@ public:
   [[nodiscard]] MessageDispatcher& GetMessageDispatcher() const;
 
 protected:
-  void on_client_accepted(const std::shared_ptr<TcpServerConnection<PacketType>>& connection) override;
-  void on_client_disconnect(const std::shared_ptr<TcpServerConnection<PacketType>>& connection) override;
+  void OnClientAccepted(const std::shared_ptr<TcpServerConnection<PacketType>>& connection) override;
+  void OnClientDisconnect(const std::shared_ptr<TcpServerConnection<PacketType>>& connection) override;
 
 private:
   GameState& game_state_;

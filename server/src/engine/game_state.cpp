@@ -84,9 +84,9 @@ void GameState::RemoveProjectile(const uint8_t projectile_id) {
     projectile_entities_.erase(it);
 
     const network::RemoveProjectile remove_message{projectile_id};
-    auto remove_packet = network::PacketFactory<network::MyPacketType>::create_packet(
+    auto remove_packet = network::PacketFactory<network::MyPacketType>::CreatePacket(
         network::MyPacketType::kRemoveProjectile, remove_message);
-    network_server_.broadcast_tcp(remove_packet);
+    network_server_.BroadcastTcp(remove_packet);
 
     std::cout << "[GameState][INFO] Removed projectile with ID "
               << static_cast<int>(projectile_id) << "\n";

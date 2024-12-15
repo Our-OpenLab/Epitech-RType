@@ -15,7 +15,7 @@ enum class MyPacketType : uint32_t {
 
   kUpdatePlayers,      // Server -> Client: Update all player data
   kUpdateEnemies,      // Server -> Client: Update all enemy data
-  kUpdateProjectile,   // Server -> Client: Updated position of a projectile
+  kUpdateProjectiles,   // Server -> Client: Updated position of a projectile
   kRemoveProjectile,   // Server -> Client: Remove a projectile
 
   kUdpPort,            // Client -> Server: Send UDP port to the server

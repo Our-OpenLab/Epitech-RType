@@ -88,7 +88,7 @@ int main() {
              std::chrono::system_clock::now().time_since_epoch())
              .count());
 
-      packet.push(timestamp);
+      packet.Push(timestamp);
       client.send(packet);
     }
    // if (key[1] && !old_key[1]) {
@@ -125,7 +125,7 @@ int main() {
             try {
               // Extraire le timestamp envoyé par le serveur
               if (message->body.size() == sizeof(std::uint32_t)) {
-                const auto server_timestamp = message->extract<std::uint32_t>();
+                const auto server_timestamp = message->Extract<std::uint32_t>();
 
                 // Obtenir le timestamp actuel
                 const auto current_timestamp = static_cast<std::uint32_t>(

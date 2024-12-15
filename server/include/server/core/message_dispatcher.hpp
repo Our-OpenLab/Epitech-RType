@@ -20,7 +20,7 @@ class MessageDispatcher {
 
   explicit MessageDispatcher(CustomNetworkServer<MyPacketType>& server)
       : server_(server) {
-    initialize_handlers();
+    InitializeHandlers();
   }
 
   void dispatch(OwnedPacket<MyPacketType>&& owned_packet) {
@@ -32,7 +32,6 @@ class MessageDispatcher {
     );
   }
 
-
  private:
   void handle_packet(OwnedPacketTCP<MyPacketType>&& packet_variant) const {
     auto& packet = packet_variant.packet;
@@ -42,7 +41,7 @@ class MessageDispatcher {
         index < tcp_handlers_.size() && tcp_handlers_[index]) {
       tcp_handlers_[index](packet, connection);
     } else {
-      DefaultTCPHandler(packet, connection);
+      DefaultTCPHandler(std::move(packet), connection);
     }
   }
 
@@ -54,30 +53,25 @@ class MessageDispatcher {
         index < udp_handlers_.size() && udp_handlers_[index]) {
       udp_handlers_[index](packet, endpoint);
     } else {
-      DefaultUDPHandler(packet, endpoint);
+      DefaultUDPHandler(std::move(packet), endpoint);
     }
   }
 
-  static void DefaultTCPHandler(Packet<MyPacketType>& packet, const std::shared_ptr<TcpServerConnection<MyPacketType>>& /*connection*/) {
-    std::cerr << "[MessageDispatcher][TCP] Unhandled packet type: "
-              << static_cast<int>(packet.header.type) << "\n";
+  static void DefaultTCPHandler(Packet<MyPacketType>&& packet, const std::shared_ptr<TcpServerConnection<MyPacketType>>& /*connection*/) {
+    std::cerr << "[MessageDispatcher][TCP] Unhandled packet "
+              << packet << std::endl;
   }
 
-  static void DefaultUDPHandler(Packet<MyPacketType>& packet, const asio::ip::udp::endpoint& /*endpoint*/) {
-    std::cerr << "[MessageDispatcher][UDP] Unhandled packet type: "
-              << static_cast<int>(packet.header.type) << "\n";
-  }
-
-  static void DefaultHandler(Packet<MyPacketType>& packet, const std::shared_ptr<TcpServerConnection<MyPacketType>>& /*connection*/) {
-    std::cerr << "[MessageDispatcher] Unhandled packet type: "
-              << static_cast<int>(packet.header.type) << "\n";
+  static void DefaultUDPHandler(Packet<MyPacketType>&& packet, const asio::ip::udp::endpoint& /*endpoint*/) {
+    std::cerr << "[MessageDispatcher][UDP] Unhandled packet "
+              << packet << std::endl;
   }
 
   static void HandlePingTCP(Packet<MyPacketType>& packet, const std::shared_ptr<TcpServerConnection<MyPacketType>>& connection) {
     try {
       if (packet.body.size() == sizeof(std::uint32_t)) {
         packet.header.type = MyPacketType::kPong;
-        connection->send(packet);
+        connection->Send(packet);
       } else {
         std::cerr << "[MessageDispatcher] Ping packet has insufficient data.\n";
       }
@@ -90,6 +84,7 @@ class MessageDispatcher {
     try {
       if (packet.body.size() == sizeof(std::uint32_t)) {
         packet.header.type = MyPacketType::kPong;
+#warning to do
         //server_.sed to udp ...
         std::cout << "[MessageDispatcher][UDP] Ping received from: " << endpoint << "\n";
       } else {
@@ -107,7 +102,7 @@ class MessageDispatcher {
         auto& game_state = server_.GetGameState();
 
         auto [player_id, input_actions, norm_mouse_x, norm_mouse_y, timestamp] =
-            PacketFactory<MyPacketType>::extract_data<PlayerInput>(packet);
+            PacketFactory<MyPacketType>::ExtractData<PlayerInput>(packet);
 
         const auto entity = game_state.GetEntityByPlayerId(player_id);
         if (entity == static_cast<Registry::entity_t>(-1)) {
@@ -165,12 +160,34 @@ class MessageDispatcher {
     }
   }
 
-  void initialize_handlers() {
+  void HandleUdpPort(const Packet<MyPacketType>& packet, const std::shared_ptr<TcpServerConnection<MyPacketType>>& connection) const {
+    try {
+      if (packet.body.size() == sizeof(uint16_t)) {
+        const auto udp_port = PacketFactory<MyPacketType>::ExtractData<uint16_t>(packet);
+
+        server_.RegisterUdpEndpoint(connection, udp_port);
+
+        std::cout << "[MessageDispatcher][INFO] Registered UDP port " << udp_port
+                  << " for client ID " << connection->GetId() << std::endl;
+      } else {
+        std::cerr << "[MessageDispatcher][ERROR] Invalid UDP port packet size from client ID "
+                  << connection->GetId() << std::endl;
+      }
+    } catch (const std::exception& e) {
+      std::cerr << "[MessageDispatcher][ERROR] Failed to process UDP port packet: " << e.what() << "\n";
+    }
+  }
+
+  void InitializeHandlers() {
     tcp_handlers_.fill(nullptr);
     udp_handlers_.fill(nullptr);
 
     tcp_handlers_[static_cast<size_t>(MyPacketType::kPing)] = [this](Packet<MyPacketType>& packet, const std::shared_ptr<TcpServerConnection<MyPacketType>>& connection) {
       HandlePingTCP(packet, connection);
+    };
+
+    tcp_handlers_[static_cast<size_t>(MyPacketType::kUdpPort)] = [this](const Packet<MyPacketType>& packet, const std::shared_ptr<TcpServerConnection<MyPacketType>>& connection) {
+      HandleUdpPort(packet, connection);
     };
 
     udp_handlers_[static_cast<size_t>(MyPacketType::kPing)] = [this](Packet<MyPacketType>& packet, const asio::ip::udp::endpoint& endpoint) {

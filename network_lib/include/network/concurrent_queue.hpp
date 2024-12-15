@@ -18,27 +18,17 @@ class ConcurrentQueue final {
 
   ~ConcurrentQueue() = default;
 
-  /*
-  std::optional<std::reference_wrapper<const T>> front() const {
-      std::lock_guard lock(mutex_);
-      if (queue_.empty()) {
-          return std::nullopt;
-      }
-      return std::cref(queue_.front());
-  }
-  */
-
-  const T& front() {
+  const T& Front() {
     std::lock_guard lock(mutex_);
     return queue_.front();
   }
 
-  unsigned long size() const {
+  unsigned long Size() const {
     std::lock_guard lock(mutex_);
     return queue_.size();
   }
 
-  std::optional<T> pop() {
+  std::optional<T> Pop() {
     std::lock_guard lock(mutex_);
     if (queue_.empty()) {
       return std::nullopt;
@@ -48,7 +38,7 @@ class ConcurrentQueue final {
     return tmp;
   }
 
-  bool try_pop(T& value) {
+  bool TryPop(T& value) {
     std::lock_guard lock(mutex_);
     if (queue_.empty()) {
       return false;
@@ -58,22 +48,22 @@ class ConcurrentQueue final {
     return true;
   }
 
-  void push(const T& item) {
+  void Push(const T& item) {
     std::lock_guard lock(mutex_);
     queue_.push(item);
   }
 
-  void push(T&& item) {
+  void Push(T&& item) {
     std::lock_guard lock(mutex_);
     queue_.push(std::move(item));
   }
 
-  void clear() {
+  void Clear() {
     std::lock_guard lock(mutex_);
     queue_.clear();
   }
 
-  [[nodiscard]] bool empty() const {
+  [[nodiscard]] bool Empty() const {
     std::lock_guard lock(mutex_);
     return queue_.empty();
   }

@@ -20,7 +20,7 @@ GameServer<PacketType>::~GameServer() {
 
 template <typename PacketType>
 bool GameServer<PacketType>::Start() {
-  if (!network_server_.start()) {
+  if (!network_server_.Start()) {
     std::cerr << "[GameServer] Failed to start network server.\n";
     return false;
   }
@@ -38,7 +38,7 @@ void GameServer<PacketType>::Stop() {
   if (!running_) return;
 
   running_ = false;
-  network_server_.stop();
+  network_server_.Stop();
 
   if (game_thread_.joinable()) {
     game_thread_.join();
@@ -93,7 +93,7 @@ void GameServer<PacketType>::ProcessPackets(
   int processed = 0;
 
   while (processed < max_packets) {
-    auto packet_opt = network_server_.pop_message();
+    auto packet_opt = network_server_.PopMessage();
     if (!packet_opt) break;
 
     const auto current_time = std::chrono::steady_clock::now();
@@ -217,14 +217,14 @@ void GameServer<PacketType>::SendProjectileUpdates(const uint32_t timestamp) {
       dirty_flags[i]->is_dirty = false;
 
       if (count >= kMaxUpdatesPerPacket) {
-        SendUpdatePacket(projectile_updates, count, PacketType::kUpdateProjectile);
+        SendUpdatePacket(projectile_updates, count, PacketType::kUpdateProjectiles);
         count = 0;
       }
     }
   }
 
   if (count > 0) {
-    SendUpdatePacket(projectile_updates, count, PacketType::kUpdateProjectile);
+    SendUpdatePacket(projectile_updates, count, PacketType::kUpdateProjectiles);
   }
 }
 
@@ -236,9 +236,9 @@ void GameServer<PacketType>::SendUpdatePacket(
     const std::array<T, kMaxUpdatesPerPacket>& updates,
     const size_t count,
     PacketType type) {
-  auto update_packet = network::PacketFactory<PacketType>::create_packet(
+  auto update_packet = network::PacketFactory<PacketType>::CreatePacket(
       type, std::span(updates.data(), count));
-  network_server_.broadcast_tcp(update_packet);
+  network_server_.BroadcastUdp(std::move(update_packet));
 }
 
 
@@ -247,7 +247,7 @@ template <typename PacketType>
 void GameServer<PacketType>::SendUpdatePacket(
     const std::array<network::UpdatePosition, kMaxUpdatesPerPacket>& updates,
     const size_t count) {
-  auto update_packet = network::PacketFactory<PacketType>::create_packet(
+  auto update_packet = network::PacketFactory<PacketType>::CreatePacket(
       PacketType::kUpdatePosition, std::span(updates.data(), count));
   network_server_.broadcast(update_packet);
 }

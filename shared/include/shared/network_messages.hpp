@@ -49,6 +49,11 @@ struct UpdateProjectile {
   float x;
   float y;
 };
+
+struct UdpPort {
+  uint16_t port;
+};
+
 }
 
 #pragma pack(pop)

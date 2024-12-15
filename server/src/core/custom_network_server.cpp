@@ -27,17 +27,17 @@ MessageDispatcher& CustomNetworkServer<PacketType>::GetMessageDispatcher() const
 }
 
 template <typename PacketType>
-void CustomNetworkServer<PacketType>::on_client_accepted(
+void CustomNetworkServer<PacketType>::OnClientAccepted(
     const std::shared_ptr<TcpServerConnection<PacketType>>& connection) {
-  const uint32_t client_id = connection->get_id();
+  const uint32_t client_id = connection->GetId();
   float spawn_x = 100, spawn_y = 100;
 
   event_queue_.push([this, connection, client_id, spawn_x, spawn_y]() {
     if (game_state_.AddPlayer(client_id, spawn_x, spawn_y)) {
       PlayerAssign assign_message{static_cast<uint8_t>(client_id)};
-      auto assign_packet = PacketFactory<PacketType>::create_packet(
+      auto assign_packet = PacketFactory<PacketType>::CreatePacket(
           PacketType::kPlayerAssign, assign_message);
-      connection->send(std::move(assign_packet));
+      connection->Send(std::move(assign_packet));
 
       game_state_.AddEnemy(300.0f, 300.0f, AIState::Pursue);
 
@@ -46,7 +46,7 @@ void CustomNetworkServer<PacketType>::on_client_accepted(
     } else {
       std::cout << "[Server][WARN] Player " << client_id
                 << " could not be added (already exists). Disconnecting client.\n";
-      connection->disconnect();
+      connection->Disconnect();
     }
   });
 
@@ -55,9 +55,9 @@ void CustomNetworkServer<PacketType>::on_client_accepted(
 }
 
 template <typename PacketType>
-void CustomNetworkServer<PacketType>::on_client_disconnect(
+void CustomNetworkServer<PacketType>::OnClientDisconnect(
     const std::shared_ptr<TcpServerConnection<PacketType>>& connection) {
-  uint8_t player_id = connection->get_id();
+  uint8_t player_id = connection->GetId();
 
   event_queue_.push([this, player_id, connection]() {
     game_state_.RemovePlayer(player_id);
@@ -65,9 +65,9 @@ void CustomNetworkServer<PacketType>::on_client_disconnect(
               << " removed from the game.\n";
 
     PlayerLeave leave_message{player_id};
-    auto leave_packet = PacketFactory<PacketType>::create_packet(
+    auto leave_packet = PacketFactory<PacketType>::CreatePacket(
         PacketType::kPlayerLeave, leave_message);
-    this->broadcast_to_others_tcp(connection, std::move(leave_packet));
+    this->BroadcastToOthersTcp(connection, std::move(leave_packet));
   });
 
   std::cout << "[CustomServer][INFO] Player " << static_cast<int>(player_id)
