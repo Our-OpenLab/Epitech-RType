@@ -7,14 +7,19 @@ namespace network {
 enum class MyPacketType : uint32_t {
   kPlayerAssign,       // Server -> Client: Assign an ID to the player
   kPlayerInput,        // Client -> Server: Player's input data
-  kUpdatePosition,     // Server -> Client: Updated position of a player
-  kUpdateProjectile,   // Server -> Client: Updated position of a projectile
-  kRemoveProjectile,   // Server -> Client: Remove a projectile
   kPlayerJoin,         // Server -> Client: Notification of a new player joining
   kPlayerLeave,        // Server -> Client: Notification of a player leaving
   kDisconnect,         // Client -> Server: Player's voluntary disconnection
   kPing,               // Ping packet
   kPong,               // Pong packet
+
+  kUpdatePlayers,      // Server -> Client: Update all player data
+  kUpdateEnemies,      // Server -> Client: Update all enemy data
+  kUpdateProjectile,   // Server -> Client: Updated position of a projectile
+  kRemoveProjectile,   // Server -> Client: Remove a projectile
+
+  kUdpPort,            // Client -> Server: Send UDP port to the server
+
   kMaxTypes            // Maximum number of packet types
 };
 }

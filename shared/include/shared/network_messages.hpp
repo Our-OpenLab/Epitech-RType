@@ -18,21 +18,6 @@ struct PlayerInput {
   uint32_t timestamp;
 };
 
-struct UpdatePosition {
-  uint8_t player_id;
-  float x;
-  float y;
-  uint32_t timestamp;
-};
-
-struct UpdateProjectile {
-  uint8_t projectile_id;
-  uint8_t owner_id;
-  float x;
-  float y;
-  uint32_t timestamp;
-};
-
 struct PlayerJoin {
   uint8_t player_id;
   float x, y;
@@ -46,6 +31,24 @@ struct RemoveProjectile {
   uint8_t projectile_id;
 };
 
+struct UpdatePlayer {
+  uint8_t player_id;
+  float x;
+  float y;
+};
+
+struct UpdateEnemy {
+  uint8_t enemy_id;
+  float x;
+  float y;
+};
+
+struct UpdateProjectile {
+  uint8_t projectile_id;
+  uint8_t owner_id;
+  float x;
+  float y;
+};
 }
 
 #pragma pack(pop)

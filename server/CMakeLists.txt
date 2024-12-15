@@ -1,8 +1,8 @@
 set(SOURCES
         src/main.cpp
-        src/core/message_dispatcher.cpp
         src/engine/game_state.cpp
         src/engine/game_engine.cpp
+        src/core/custom_network_server.cpp
 )
 
 add_executable(server ${SOURCES})

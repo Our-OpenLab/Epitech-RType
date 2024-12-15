@@ -106,13 +106,13 @@ void Client::Run() {
      //   std::cout << "[Client][DEBUG] Tick: " << tick_counter
      //             << ", Render time: " << render_time.count() << " ms\n";
 
+      const auto [x, y] = game_state_.GetLocalPlayerPosition();
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 is_running_ = false;
             }
-            const auto [x, y] = game_state_.GetLocalPlayerPosition();
-            input_manager_.HandleEvent(event, tick_start_time, x, y);
+            input_manager_.HandleEvent(event, tick_start_time, 0, 0);
         }
 
         const auto packet_start_time = std::chrono::steady_clock::now();
@@ -136,7 +136,9 @@ void Client::Run() {
 //        renderer_.Clear();
 //        renderer_.DrawGame(game_state_);
 //        renderer_.Present();
-      renderer_.UpdateCamera(game_state_);
+      const auto [x1, y1] = game_state_.GetLocalPlayerPosition();
+
+      renderer_.UpdateCamera({x1, y1});
       renderer_.Clear();
       renderer_.DrawGame(game_state_);
       renderer_.Present();

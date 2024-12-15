@@ -44,7 +44,7 @@ private:
 
 int main()
 {
-  game::GameServer<network::MyPacketType> game_server(4242);
+  game::GameServer<network::MyPacketType> game_server(4242, 4243);
 
   ServerController controller(game_server);
 

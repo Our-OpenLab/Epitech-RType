@@ -25,39 +25,6 @@ void main() {
     FragColor = vec4(color, 1.0);
 })";
 
-/*
-auto neon_fragment_shader_source = R"(
-#version 330 core
-
-out vec4 FragColor;
-
-uniform float time;
-uniform vec2 resolution;
-
-void main(void) {
-    // Calculer les coordonnées normalisées de l'écran
-    vec2 p = (gl_FragCoord.xy * 2.0 - resolution) / min(resolution.x, resolution.y);
-
-    // Couleur de base
-    vec3 color = vec3(0.0, 0.3, 0.5);
-
-    // Calcul de l'effet
-    float f = 0.0;
-    float PI = 3.141592;
-
-    for (float i = 0.0; i < 20.0; i++) {
-        float s = sin(time + i * PI / 20.0) * 0.8;
-        float c = cos(time + i * PI / 20.0) * 0.8;
-        f += 0.001 / (abs(p.x + c) * abs(p.y + s));
-    }
-
-    // Appliquer la couleur calculée
-    FragColor = vec4(vec3(f * color), 1.0);
-}
-
-)";
-
-*/
 
 auto neon_bar_horizontal_shader = R"(
 #version 330 core
@@ -80,8 +47,7 @@ void main(void) {
     if (pixel_pos.x < rect_position.x || pixel_pos.x > rect_position.x + rect_size.x ||
         pixel_pos.y < rect_position.y || pixel_pos.y > rect_position.y + rect_size.y) {
         // En dehors du rectangle : ne rien dessiner (transparent/noir)
-        FragColor = vec4(0.0);
-        return;
+        discard;
     }
 
     // Normaliser la position dans le rectangle
@@ -146,8 +112,7 @@ void main(void) {
     if (pixel_pos.x < rect_position.x || pixel_pos.x > rect_position.x + rect_size.x ||
         pixel_pos.y < rect_position.y || pixel_pos.y > rect_position.y + rect_size.y) {
         // En dehors du rectangle : ne rien dessiner (transparent/noir)
-        FragColor = vec4(0.0);
-        return;
+        discard;
     }
 
     // Normaliser la position dans le rectangle
@@ -192,6 +157,76 @@ void main(void) {
 
 )";
 
+auto projectile_shader_source = R"(
+#version 330 core
+
+out vec4 FragColor;
+
+uniform float time;
+uniform vec2 resolution;
+uniform vec2 rect_position; // Position du projectile
+
+float makePoint(float x, float y, float s)
+{
+    float distance = sqrt(x * x + y * y);
+    return (s / 3.0) / ((0.007 / s) + distance);
+}
+
+vec3 grad(float f)
+{
+    // Gradient de couleur simplifié
+    vec4 c01 = vec4(0.0, 0.0, 0.0, 0.00);
+    vec4 c02 = vec4(0.5, 0.0, 0.0, 0.50);
+    vec4 c03 = vec4(1.0, 0.0, 0.0, 0.55);
+    vec4 c04 = vec4(1.0, 1.0, 0.0, 0.80);
+    vec4 c05 = vec4(1.0, 1.0, 1.0, 1.00);
+
+    return (f < c02.w) ? mix(c01.xyz, c02.xyz, f / c02.w)
+         : (f < c03.w) ? mix(c02.xyz, c03.xyz, (f - c02.w) / (c03.w - c02.w))
+         : (f < c04.w) ? mix(c03.xyz, c04.xyz, (f - c03.w) / (c04.w - c03.w))
+         : mix(c04.xyz, c05.xyz, (f - c04.w) / (c05.w - c04.w));
+}
+
+void main(void)
+{
+    vec2 pixel_pos = gl_FragCoord.xy;
+
+    if (pixel_pos.x < rect_position.x || pixel_pos.x > rect_position.x + resolution.x ||
+        pixel_pos.y < rect_position.y || pixel_pos.y > rect_position.y + resolution.y)
+    {
+        discard;
+    }
+
+    // Position relative au rectangle
+//    vec2 p = (gl_FragCoord.xy - rect_position - resolution.xy / 2.0) / resolution.y;
+
+    vec2 p = (pixel_pos - rect_position) / resolution;
+
+    // Étendre la position à [-1, 1] pour centrer le rendu
+    p = p * 2.0 - 1.0;
+
+    float x = p.x;
+    float y = p.y;
+
+    float a = makePoint(x, y, 55.0);
+    vec3 a1 = grad(a / 183.0);
+
+    // Couleur calculée
+    vec3 col = vec3(a1.x, a1.y, a1.z);
+
+    // Atténuation basée sur la distance au centre
+    vec2 center = rect_position + resolution / 2.0; // Centre du projectile
+    float distance_to_center = length((gl_FragCoord.xy - center) / resolution);
+
+    // Limiter l'effet avec une atténuation exponentielle
+    float attenuation = pow(1.0 - clamp(distance_to_center, 0.0, 1.0), 2.5);
+
+    // Appliquer l'atténuation à la couleur finale
+    col *= attenuation;
+
+    FragColor = vec4(col, 1.0);
+}
+)";
 
 auto starguy_shader_source = R"(
 #version 330 core
@@ -253,8 +288,7 @@ void main(void) {
     if (pixel_pos.x < rect_position.x - 50.0 || pixel_pos.x > rect_position.x + resolution.x + 50.0 ||
       pixel_pos.y < rect_position.y - 50.0 || pixel_pos.y > rect_position.y + resolution.y + 50.0) {
       // En dehors de la zone élargie : ne rien dessiner (transparent/noir)
-      FragColor = vec4(0.0);
-      return;
+      discard;
     }
 
     // Position relative à rect_position
@@ -298,7 +332,55 @@ void main(void) {
 
 )";
 
-Renderer::Renderer(int width, int height, const std::string& title)
+auto enemy_shader_source = R"(
+#version 330 core
+
+out vec4 FragColor;
+
+uniform float time;
+uniform vec2 resolution;
+uniform vec2 rect_position; // Position du rectangle
+
+void main(void){
+    vec2 pixel_pos = gl_FragCoord.xy;
+
+    // Vérifier si le pixel est en dehors de la zone élargie
+    if (pixel_pos.x < rect_position.x - 50.0 || pixel_pos.x > rect_position.x + resolution.x + 50.0 ||
+        pixel_pos.y < rect_position.y - 50.0 || pixel_pos.y > rect_position.y + resolution.y + 50.0) {
+        discard; // Ne rien dessiner pour les pixels en dehors de cette zone
+    }
+
+    // Position relative à rect_position, normalisée
+    vec2 p = (gl_FragCoord.xy - rect_position - resolution.xy / 2.0) / resolution.y;
+
+    float lambda = time * 2.5;
+
+    // Calcul de la distance
+    float u = sin((atan(p.y, p.x) - length(p)) * 5.0 + time * 2.0) * 0.3 + 0.2;
+    float t = 0.01 / abs(0.5 + u - length(p));
+
+    // Exemple de produit scalaire
+    vec2 something = vec2(0.0, 1.0);
+    float dotProduct = dot(vec2(t), something) / length(p);
+
+   // FragColor = vec4(tan(dotProduct), 0.0, sin(t), 1.0);
+
+// Ajuster les couleurs pour les rendre plus claires
+    float brightness = 2; // Facteur de luminosité
+    vec3 color = vec3(
+        tan(dotProduct) * brightness,
+        0.0,
+        sin(t) * brightness
+    );
+
+    // Limiter les couleurs pour éviter les dépassements
+    color = clamp(color, 0.0, 1.0);
+
+    FragColor = vec4(color, 1.0);
+}
+)";
+
+Renderer::Renderer(const int width, const int height, const std::string& title)
     : width_(width), height_(height) {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
     throw std::runtime_error("Failed to initialize SDL: " + std::string(SDL_GetError()));
@@ -348,6 +430,8 @@ void Renderer::InitOpenGL() {
   neon_bar_horizontal_program_ = LoadShaders(vertex_shader_source, neon_bar_horizontal_shader); // Utilisez la fonction `LoadShaders`
   neon_bar_vertical_program_ = LoadShaders(vertex_shader_source, neon_bar_vertical_shader); // Utilisez la fonction `LoadShaders`
   starguy_program_ = LoadShaders(vertex_shader_source, starguy_shader_source); // Utilisez la fonction `LoadShaders`
+  projectile_program_ = LoadShaders(vertex_shader_source, projectile_shader_source); // Utilisez la fonction `LoadShaders`
+  enemy_program_ = LoadShaders(vertex_shader_source, enemy_shader_source); // Utilisez la fonction `LoadShaders`
 
   glGenVertexArrays(1, &vao_);
   glGenBuffers(1, &vbo_);
@@ -413,19 +497,22 @@ void Renderer::CheckProgramLinkError(GLuint program) {
     throw std::runtime_error("Program link error: " + std::string(info_log));
   }
 }
-   // camera_.position = glm::vec2(0, 0);
 
-void Renderer::UpdateCamera(const client::GameState& game_state) {
+void Renderer::UpdateCamera(const std::pair<float, float>& position) {
   // Met à jour la position de la caméra en fonction du joueur
-  auto& registry = game_state.GetRegistry();
-  auto& players = registry.get_components<Player>();
-  auto& positions = registry.get_components<Position>();
 
-  for (size_t i = 0; i < players.size(); ++i) {
-    if (players[i].has_value() && positions[i].has_value()) {
-      const auto& [x, y] = *positions[i];
-      std::cout << "Player position: " << x << ", " << y << '\n';
-      camera_.position = glm::vec2(x - width_ / 2.0f, -y - height_ / 2.0f);
+  camera_.position = glm::vec2(position.first - width_ / 2.0f, -position.second - height_ / 2.0f);
+
+ // auto& registry = game_state.GetRegistry();
+ // auto& players = registry.get_components<Player>();
+ // auto& positions = registry.get_components<Position>();
+
+ // for (size_t i = 0; i < players.size(); ++i) {
+
+  //  if (players[i].has_value() && positions[i].has_value()) {
+  //    const auto& [x, y] = *positions[i];
+  //    std::cout << "Player position: " << x << ", " << y << '\n';
+  //    camera_.position = glm::vec2(x - width_ / 2.0f, -y - height_ / 2.0f);
 
      // camera_.projection_matrix = glm::ortho(0.0f, static_cast<float>(width_),
      //                                        static_cast<float>(height_), 0.0f);
@@ -434,56 +521,8 @@ void Renderer::UpdateCamera(const client::GameState& game_state) {
     //      camera_.position.x, camera_.position.x + width_,
     //      camera_.position.y + height_, camera_.position.y);
       return;
-    }
-  }
-}
-
-void Renderer::DrawArenaBoundaries() const {
-  glUseProgram(shader_program_);
-
-  float vertices[8] = {
-      -camera_.position.x, -camera_.position.y,
-      2000 - camera_.position.x, -camera_.position.y,
-      2000 - camera_.position.x, 2000 - camera_.position.y,
-      -camera_.position.x, 2000 - camera_.position.y,
-  };
-
-  glBindVertexArray(vao_);
-  glBindBuffer(GL_ARRAY_BUFFER, vbo_);
-  glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-
-  glUniformMatrix4fv(glGetUniformLocation(shader_program_, "projection"), 1, GL_FALSE, glm::value_ptr(camera_.projection_matrix));
-  glUniform3f(glGetUniformLocation(shader_program_, "color"), 1.0f, 1.0f, 1.0f);
-
-  glDrawArrays(GL_LINE_LOOP, 0, 4);
-
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
-  glUseProgram(0);
-}
-
-void Renderer::DrawRectangle(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color) const {
-  glUseProgram(shader_program_);
-
-  float vertices[] = {
-    position.x, position.y,
-    position.x + size.x, position.y,
-    position.x + size.x, position.y + size.y,
-    position.x, position.y + size.y,
-};
-
-  glBindVertexArray(vao_);
-  glBindBuffer(GL_ARRAY_BUFFER, vbo_);
-  glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-
-  glUniformMatrix4fv(glGetUniformLocation(shader_program_, "projection"), 1, GL_FALSE, glm::value_ptr(camera_.projection_matrix));
-  glUniform3f(glGetUniformLocation(shader_program_, "color"), color.r, color.g, color.b);
-
-  glDrawArrays(GL_LINE_LOOP, 0, 4);
-
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
-  glUseProgram(0);
+  //  }
+ // }
 }
 
 void Renderer::DrawHorizontalNeonBar(const glm::vec2& map_position, const glm::vec2& size) const {
@@ -566,32 +605,6 @@ void Renderer::DrawVerticalNeonBar(const glm::vec2& map_position, const glm::vec
   glUseProgram(0);
 }
 
-/*
-void Renderer::DrawVisibleBar(const glm::vec2& position, const glm::vec2& size) const {
-  // Calcul des limites visibles en X
-  float visible_start_x = position.x; // Garder la largeur complète
-  float visible_width = size.x;       // Toujours utiliser la largeur initiale
-
-  // Calcul des limites visibles en Y
-  float visible_start_y = std::max(position.y, camera_.position.y);
-  float visible_end_y = std::min(position.y + size.y, camera_.position.y + height_);
-  float visible_height = visible_end_y - visible_start_y;
-
-  if (visible_width > 0.0f && visible_height > 0.0f) {
-    // Position de départ pour dessiner (corrigée pour Y uniquement)
-    glm::vec2 rect_position = {visible_start_x, visible_start_y};
-    // Taille corrigée : largeur inchangée, hauteur ajustée
-    glm::vec2 rect_size = {visible_width, visible_height};
-
-    std::cout << "Visible bar: " << rect_position.x << ", " << rect_position.y
-              << ", " << rect_size.x << ", " << rect_size.y << '\n';
-
-    // Dessiner avec la taille corrigée
-    DrawNeonRectangle(rect_position, rect_size);
-  }
-}
-*/
-
 void Renderer::DrawVisibleHorizontalBar(const glm::vec2& position, const glm::vec2& size) const {
   // Calculer les limites visibles en Y
   float visible_start_y = std::max(position.y, camera_.position.y);
@@ -671,9 +684,7 @@ void Renderer::DrawStarguy(const glm::vec2& map_position, const glm::vec2& size)
 
   glm::vec2 screen_position = map_position - camera_.position;
 
-  screen_position.x += width_ / 2.0f;
   screen_position.x -= size.x / 2.0f;
-  screen_position.y += height_ / 2.0f;
   screen_position.y -= size.y / 2.0f;
 
   // Passer les uniformes pour la position et la taille du rectangle
@@ -699,49 +710,128 @@ void Renderer::DrawStarguy(const glm::vec2& map_position, const glm::vec2& size)
   glUseProgram(0);
 }
 
+void Renderer::DrawProjectile(const glm::vec2& map_position, const glm::vec2& size) const {
+  glUseProgram(projectile_program_);
+
+  glUniformMatrix4fv(glGetUniformLocation(projectile_program_, "projection"), 1, GL_FALSE, glm::value_ptr(camera_.projection_matrix));
+
+  // Calculer la position relative à la caméra
+  glm::vec2 screen_position = map_position - camera_.position;
+
+  screen_position.x -= size.x / 2.0f;
+  screen_position.y -= size.y / 2.0f;
+
+  // Passer les uniformes au shader
+  glUniform1f(glGetUniformLocation(projectile_program_, "time"), static_cast<float>(SDL_GetTicks()) / 1000.0f);
+  glUniform2f(glGetUniformLocation(projectile_program_, "resolution"), static_cast<float>(size.x), static_cast<float>(size.y));
+  glUniform2f(glGetUniformLocation(projectile_program_, "rect_position"), screen_position.x, screen_position.y);
+
+  // Définir les sommets du rectangle couvrant la zone du projectile
+  float vertices[] = {
+    0.0f, static_cast<float>(height_),
+    static_cast<float>(width_), static_cast<float>(height_),
+    static_cast<float>(width_), 0.0f,
+    0.0f, 0.0f
+};
+
+  glBindVertexArray(vao_);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+
+  // Dessiner le projectile
+  glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
+  glUseProgram(0);
+}
+
+void Renderer::DrawEnemy(const glm::vec2& map_position, const glm::vec2& size) const {
+  glUseProgram(enemy_program_);
+
+  glUniformMatrix4fv(glGetUniformLocation(enemy_program_, "projection"), 1, GL_FALSE, glm::value_ptr(camera_.projection_matrix));
+
+  // Calculer la position relative à la caméra
+  glm::vec2 screen_position = map_position - camera_.position;
+
+  screen_position.x -= size.x / 2.0f;
+  screen_position.y -= size.y / 2.0f;
+
+  // Passer les uniformes au shader
+  glUniform1f(glGetUniformLocation(enemy_program_, "time"), static_cast<float>(SDL_GetTicks()) / 200.0f);
+  glUniform2f(glGetUniformLocation(enemy_program_, "resolution"), static_cast<float>(size.x), static_cast<float>(size.y));
+  glUniform2f(glGetUniformLocation(enemy_program_, "rect_position"), screen_position.x, screen_position.y);
+
+  // Définir les sommets du rectangle couvrant la zone du projectile
+  float vertices[] = {
+    0.0f, static_cast<float>(height_),
+    static_cast<float>(width_), static_cast<float>(height_),
+    static_cast<float>(width_), 0.0f,
+    0.0f, 0.0f
+};
+
+  glBindVertexArray(vao_);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+
+  // Dessiner le projectile
+  glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
+  glUseProgram(0);
+}
+
+
 void Renderer::DrawGame(const client::GameState& game_state) const {
-    // Dessiner plusieurs rectangles
-    /*glm::vec2 rect_size1 = {12000.0f, 100.0f};
-    glm::vec2 rect_position1 = {};
-    DrawNeonRectangle(rect_position1, rect_size1);
+    constexpr glm::vec2 left_bar_position = {-200.0f, -2100.0f};
+    constexpr glm::vec2 left_bar_size = {400.0f, 2200.0f};
 
-    glm::vec2 rect_size2 = {150.0f, 100.0f};
-    glm::vec2 rect_position2 = {400.0f, 300.0f};
-    DrawNeonRectangle(rect_position2, rect_size2);
-
-    glm::vec2 rect_size3 = {200.0f, 50.0f};
-    glm::vec2 rect_position3 = {600.0f, 800.0f};
-    DrawNeonRectangle(rect_position3, rect_size3);
-    */
-
-    glm::vec2 left_bar_position = {-200.0f, -2100.0f}; // Position de départ
-    glm::vec2 left_bar_size = {400.0f, 2200.0f};  // Taille totale (largeur x hauteur)
-
-    // Dessiner uniquement la partie visible
     DrawVisibleVerticalBar(left_bar_position, left_bar_size);
 
-    glm::vec2 right_bar_position = {1800.0f, -2100.0f}; // Position de départ
-    glm::vec2 right_bar_size = {400.0f, 2200.0f};  // Taille totale (largeur x hauteur)
+    constexpr glm::vec2 right_bar_position = {1800.0f, -2100.0f};
+    constexpr glm::vec2 right_bar_size = {400.0f, 2200.0f};
 
-    // Dessiner uniquement la partie visible
     DrawVisibleVerticalBar(right_bar_position, right_bar_size);
 
-    glm::vec2 bottom_bar_position = {-100.0f, -2200.0f}; // Position de départ
-    glm::vec2 bottom_bar_size = {2200.0f, 400.0f};  // Taille totale (largeur x hauteur)
+    constexpr glm::vec2 bottom_bar_position = {-100.0f, -2200.0f};
+    constexpr glm::vec2 bottom_bar_size = {2200.0f,
+                                 400.0f};
 
-    // Dessiner uniquement la partie visible
     DrawVisibleHorizontalBar(bottom_bar_position, bottom_bar_size);
 
-    glm::vec2 top_bar_position = {-100.0f, -200.0f}; // Position de départ
-    glm::vec2 top_bar_size = {2200.0f, 400.0f};  // Taille totale (largeur x hauteur)
+    constexpr glm::vec2 top_bar_position = {-100.0f, -200.0f};
+    constexpr glm::vec2 top_bar_size = {2200.0f, 400.0f};
 
-    // Dessiner uniquement la partie visible
     DrawVisibleHorizontalBar(top_bar_position, top_bar_size);
 
-  glm::vec2 stargui_position = {50.0f, -100.0f}; // Position de départ
-  glm::vec2 stargui_size = {120.0f, 120.0f};  // Taille totale (largeur x hauteur)
+    auto& registry = game_state.GetRegistry();
+    auto& positions = registry.get_components<Position>();
+    auto& players = registry.get_components<Player>();
+    auto& enemies = registry.get_components<Enemy>();
+    auto& projectiles = registry.get_components<Projectile>();
 
-  DrawStarguy(camera_.position, stargui_size);
+    for (size_t i = 0; i < positions.size(); ++i) {
+      if (!positions[i].has_value()) {
+        continue;
+      }
+
+      const auto& [x, y] = *positions[i];
+
+      glm::vec2 screen_position = {
+        x,
+        -y
+      };
+
+      if (players[i].has_value()) {
+        DrawStarguy(screen_position, {120.0f, 120.0f});
+      } else if (enemies[i].has_value()) {
+        DrawEnemy(screen_position, {30.0f, 30.0f});
+      } else if (projectiles[i].has_value()) {
+        std::cout << "Drawing projectile at: " << screen_position.x << ", " << screen_position.y << std::endl;
+        DrawProjectile(screen_position, {120.0f, 120.0f});
+      }
+    }
 }
 
 
@@ -807,6 +897,7 @@ void Renderer::Shutdown() {
   glDeleteProgram(neon_bar_horizontal_program_);
   glDeleteProgram(neon_bar_vertical_program_);
   glDeleteProgram(starguy_program_);
+  glDeleteProgram(projectile_program_);
 
   if (gl_context_) {
     SDL_GL_DeleteContext(gl_context_);

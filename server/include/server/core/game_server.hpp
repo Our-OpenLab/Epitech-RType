@@ -19,7 +19,7 @@ namespace game {
 template <typename PacketType>
 class GameServer {
 public:
-  explicit GameServer(uint16_t port);
+  explicit GameServer(uint16_t tcp_port, uint16_t udp_port);
   ~GameServer();
 
   bool Start();
@@ -30,7 +30,8 @@ private:
   static constexpr int kMaxPacketsPerTick{50};
   static constexpr std::chrono::milliseconds kMaxPacketProcessingTime{10};
   static constexpr std::size_t kSafeUdpPayloadSize = 512;
-  static constexpr std::size_t kUpdatePositionSize = sizeof(network::UpdatePosition);
+  //static constexpr std::size_t kUpdatePositionSize = sizeof(network::UpdatePosition);
+  static constexpr std::size_t kUpdatePositionSize = sizeof(network::UpdatePlayer);
   static constexpr std::size_t kMaxUpdatesPerPacket = kSafeUdpPayloadSize / kUpdatePositionSize;
   static constexpr uint32_t kUpdateFrequencyTicks = 1;
 
@@ -39,6 +40,7 @@ private:
   void SendUpdatesToClients(uint32_t timestamp);
   void SendPlayerUpdates(uint32_t timestamp);
   void SendProjectileUpdates(uint32_t timestamp);
+  void SendEnemyUpdates(uint32_t timestamp);
   template <typename T>
   void SendUpdatePacket(const std::array<T, kMaxUpdatesPerPacket>& updates, size_t count, PacketType type);
 

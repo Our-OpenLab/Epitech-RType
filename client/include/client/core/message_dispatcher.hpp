@@ -19,16 +19,14 @@ private:
   static void DefaultHandler(network::Packet<network::MyPacketType>& packet, Client& client);
 
   static void HandlePlayerAssign(const network::Packet<network::MyPacketType>& packet, Client& client);
-  static void HandlePlayerLeave(
-      const network::Packet<network::MyPacketType>& packet, Client& client);
-  static void HandleRemoveProjectiles(
-      const network::Packet<network::MyPacketType>& packet, Client& client);
+  static void HandlePlayerLeave(const network::Packet<network::MyPacketType>& packet, Client& client);
   static void HandlePlayerJoin(const network::Packet<network::MyPacketType>& packet, Client& client);
-
   static void HandlePong(network::Packet<network::MyPacketType>& packet, Client& client);
 
-  static void HandleUpdatePositions(const network::Packet<network::MyPacketType>& packet, Client& client);
+  static void HandleUpdatePlayers(const network::Packet<network::MyPacketType>& packet, Client& client);
+  static void HandleUpdateEnemies(const network::Packet<network::MyPacketType>& packet, Client& client);
   static void HandleUpdateProjectiles(const network::Packet<network::MyPacketType>& packet, Client& client);
+  static void HandleRemoveProjectiles(const network::Packet<network::MyPacketType>& packet, Client& client);
 
   static const std::array<Handler, static_cast<size_t>(network::MyPacketType::kMaxTypes)> handlers_;
 };

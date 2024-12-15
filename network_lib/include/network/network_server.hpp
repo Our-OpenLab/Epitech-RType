@@ -1,6 +1,8 @@
 #ifndef NETWORK_SERVER_H_
 #define NETWORK_SERVER_H_
 
+#include <__algorithm/ranges_find_if.h>
+
 #include <asio/io_context.hpp>
 #include <asio/ip/tcp.hpp>
 #include <cstdint>
@@ -11,22 +13,25 @@
 #include <vector>
 
 #include "concurrent_queue.hpp"
-#include "server_connection.hpp"
+#include "tcp_server_connection.hpp"
+#include "udp_connection.hpp"
 
 namespace network {
 
 template <typename PacketType>
 class NetworkServer {
  public:
-  explicit NetworkServer(const uint16_t port)
-      : acceptor_(io_context_,
-                  asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)) {}
+  explicit NetworkServer(const uint16_t tcp_port, const uint16_t udp_port)
+    : acceptor_(io_context_,
+                  asio::ip::tcp::endpoint(asio::ip::tcp::v4(), tcp_port)),
+    udp_connection_(std::make_shared<UdpConnection<PacketType>>(io_context_, udp_port, received_queue_)) {}
 
   virtual ~NetworkServer() { stop(); }
 
   bool start() {
     try {
       accept();
+      udp_connection_->start();
       context_thread_ = std::thread([this]() { io_context_.run(); });
       std::cout << "[Server][INFO] Started successfully on port "
                 << acceptor_.local_endpoint().port() << std::endl;
@@ -45,11 +50,13 @@ class NetworkServer {
       context_thread_.join();
     }
     connections_.clear();
+    udp_to_tcp_map_.clear();
+    tcp_to_udp_map_.clear();
     std::cout << "[Server][INFO] Stopped." << std::endl;
   }
 
   template <typename T>
-  void broadcast(T&& packet) {
+  void broadcast_tcp(T&& packet) {
     std::erase_if(connections_, [this, &packet](auto& connection) {
         if (connection->is_connected()) {
             std::cout << "[Server][INFO] Sending packet " << packet << std::endl;
@@ -62,8 +69,15 @@ class NetworkServer {
   }
 
   template <typename T>
-  void broadcast_to_others(
-    const std::shared_ptr<ServerConnection<PacketType>>& excluded_connection,
+  void broadcast_udp(const Packet<PacketType>& packet) {
+    for (const auto& [udp_endpoint, connection] : udp_to_tcp_map_) {
+      udp_connection_->send_to(packet, udp_endpoint);
+    }
+  }
+
+  template <typename T>
+  void broadcast_to_others_tcp(
+    const std::shared_ptr<TcpServerConnection<PacketType>>& excluded_connection,
     T&& packet) {
     std::erase_if(connections_, [this, &packet, &excluded_connection](auto& connection) {
         if (connection == excluded_connection) {
@@ -81,7 +95,7 @@ class NetworkServer {
   }
 
   template <typename T>
-  bool send_to(uint32_t connection_id, T&& packet) {
+  bool send_to_tcp(uint32_t connection_id, T&& packet) {
     bool sent = false;
 
     std::erase_if(connections_,
@@ -106,23 +120,66 @@ class NetworkServer {
     return sent;
   }
 
+  template <typename T>
+  bool send_to_tcp(const std::shared_ptr<TcpServerConnection<PacketType>>& connection, T&& packet) {
+    if (connection && connection->is_connected()) {
+      connection->send(std::forward<T>(packet));
+      return true;
+    }
+
+    std::cerr << "[Server][INFO] Removing invalid or disconnected connection ID "
+      << (connection ? connection->get_id() : 0) << std::endl;
+
+    on_client_disconnect(connection);
+    connections_.erase(std::remove(connections_.begin(), connections_.end(), connection), connections_.end());
+
+    return false;
+  }
+
+  template <typename T>
+  void send_to_udp(const asio::ip::udp::endpoint& endpoint, const T& packet) {
+    udp_connection_->send_to(packet, endpoint);
+  }
+
   bool disconnect_client(uint32_t connection_id) {
-    const auto it =
-        std::ranges::find_if(connections_, [connection_id](const auto& conn) {
-          return conn && conn->get_id() == connection_id;
-        });
+    const auto it = std::ranges::find_if(connections_, [connection_id](const auto& conn) {
+      return conn && conn->get_id() == connection_id;
+    });
 
     if (it != connections_.end()) {
-      on_client_disconnect(*it);
-      *it.disconnect();
+      auto connection = *it;
+
+      auto udp_it = tcp_to_udp_map_.find(connection);
+      if (udp_it != tcp_to_udp_map_.end()) {
+        udp_to_tcp_map_.erase(udp_it->second);
+        tcp_to_udp_map_.erase(udp_it);
+      }
+
+      on_client_disconnect(connection);
+      connection->disconnect();
       connections_.erase(it);
+
       std::cout << "[Server][INFO] Client with ID " << connection_id
                 << " disconnected successfully." << std::endl;
       return true;
     }
+
     std::cerr << "[Server][ERROR] Failed to disconnect client ID "
               << connection_id << std::endl;
     return false;
+  }
+
+
+  virtual void register_udp_endpoint(const std::shared_ptr<TcpServerConnection<PacketType>>& connection, uint16_t udp_port) {
+    auto client_ip = connection->get_socket().remote_endpoint().address();
+    asio::ip::udp::endpoint udp_endpoint(client_ip, udp_port);
+
+    udp_to_tcp_map_[udp_endpoint] = connection;
+    tcp_to_udp_map_[connection] = udp_endpoint;
+
+    std::cout << "[Server][INFO] Registered UDP endpoint for client ID "
+              << connection->get_id() << " at " << udp_endpoint.address().to_string()
+              << ":" << udp_endpoint.port() << std::endl;
   }
 
   std::optional<OwnedPacket<PacketType>> pop_message() { return received_queue_.pop(); }
@@ -138,7 +195,7 @@ class NetworkServer {
    * @return `true` if the connection is accepted, `false` otherwise.
    */
   virtual bool on_client_connect(
-      const std::shared_ptr<ServerConnection<PacketType>>& connection) {
+      const std::shared_ptr<TcpServerConnection<PacketType>>& connection) {
     // Default implementation: always accept connections.
     // Override this in a derived class to implement custom logic.
     return true;
@@ -148,12 +205,12 @@ class NetworkServer {
   * Callback when a client is fully accepted (customizable in derived classes).
   */
   virtual void on_client_accepted(
-      const std::shared_ptr<ServerConnection<PacketType>>& connection) {
+      const std::shared_ptr<TcpServerConnection<PacketType>>& connection) {
     // Default: Do nothing. Override in derived classes.
   }
 
   virtual void on_client_disconnect(
-      const std::shared_ptr<ServerConnection<PacketType>>& connection) {
+      const std::shared_ptr<TcpServerConnection<PacketType>>& connection) {
 
       std::cout << "[Server][INFO] Client with ID " << connection->get_id()
                 << " disconnected." << std::endl;
@@ -168,8 +225,7 @@ class NetworkServer {
                       << socket.remote_endpoint().address().to_string()
                       << std::endl;
 
-            auto connection = std::make_shared<ServerConnection<PacketType>>(
-                io_context_, std::move(socket), received_queue_,
+            auto connection = std::make_shared<TcpServerConnection<PacketType>>(std::move(socket), received_queue_,
                 ++connection_id_counter_);
 
             if (on_client_connect(connection)) {
@@ -202,13 +258,18 @@ class NetworkServer {
     connections_.clear();
   }
 
-  ConcurrentQueue<OwnedPacket<PacketType>> received_queue_;
-
-  std::deque<std::shared_ptr<ServerConnection<PacketType>>> connections_;
-
-  asio::io_context io_context_;
-  std::thread context_thread_;
+  asio::io_context io_context_{};
   asio::ip::tcp::acceptor acceptor_;
+
+  std::shared_ptr<UdpConnection<PacketType>> udp_connection_;
+
+  ConcurrentQueue<OwnedPacket<PacketType>> received_queue_;
+  std::deque<std::shared_ptr<TcpServerConnection<PacketType>>> connections_;
+
+  std::unordered_map<asio::ip::udp::endpoint, std::shared_ptr<TcpServerConnection<PacketType>>> udp_to_tcp_map_;
+  std::unordered_map<std::shared_ptr<TcpServerConnection<PacketType>>, asio::ip::udp::endpoint> tcp_to_udp_map_;
+
+  std::thread context_thread_;
 
   uint32_t connection_id_counter_ = 0;
 };

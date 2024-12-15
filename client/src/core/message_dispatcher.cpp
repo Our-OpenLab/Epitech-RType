@@ -40,13 +40,13 @@ void MessageDispatcher::HandlePlayerAssign(const network::Packet<network::MyPack
             << " successfully added to GameState.\n";
 }
 
-void MessageDispatcher::HandleUpdatePositions(const network::Packet<network::MyPacketType>& packet, Client& client) {
-  const auto update_positions = network::PacketFactory<network::MyPacketType>::extract_data_array<network::UpdatePosition>(packet);
+void MessageDispatcher::HandleUpdatePlayers(const network::Packet<network::MyPacketType>& packet, Client& client) {
+  const auto update_players = network::PacketFactory<network::MyPacketType>::extract_data_array<network::UpdatePlayer>(packet);
   auto& game_state = client.GetGameState();
   auto& registry = game_state.GetRegistry();
   auto& positions = registry.get_components<Position>();
 
-  for (const auto& [player_id, new_x, new_y, _] : update_positions) {
+  for (const auto& [player_id, new_x, new_y] : update_players) {
     if (const auto entity = game_state.GetPlayer(player_id);
         entity == client::GameState::InvalidEntity) {
       std::cout << "[Client][INFO] Adding new player with ID: " << static_cast<int>(player_id) << '\n';
@@ -69,13 +69,42 @@ void MessageDispatcher::HandleUpdatePositions(const network::Packet<network::MyP
   }
 }
 
+void MessageDispatcher::HandleUpdateEnemies(const network::Packet<network::MyPacketType>& packet, Client& client) {
+  const auto update_enemies = network::PacketFactory<network::MyPacketType>::extract_data_array<network::UpdateEnemy>(packet);
+  auto& game_state = client.GetGameState();
+  auto& registry = game_state.GetRegistry();
+  auto& positions = registry.get_components<Position>();
+
+  for (const auto& [enemy_id, new_x, new_y] : update_enemies) {
+    if (const auto entity = game_state.GetEnemy(enemy_id);
+        entity == client::GameState::InvalidEntity) {
+      std::cout << "[Client][INFO] Adding new enemy with ID: " << static_cast<int>(enemy_id) << '\n';
+
+      game_state.AddEnemy(enemy_id, new_x, new_y);
+
+      std::cout << "[Client][INFO] Added Enemy " << static_cast<int>(enemy_id)
+                << " at position (" << new_x << ", " << new_y << ")\n";
+        } else if (entity < positions.size() && positions[entity].has_value()) {
+          auto& [x, y] = *positions[entity];
+          x = new_x;
+          y = new_y;
+
+          std::cout << "[Client][INFO] Updated position for Enemy " << static_cast<int>(enemy_id)
+                    << " to (" << new_x << ", " << new_y << ")\n";
+        } else {
+          std::cerr << "[Client][WARNING] Position component not found for Enemy ID: "
+                    << static_cast<int>(enemy_id) << '\n';
+        }
+  }
+}
+
 void MessageDispatcher::HandleUpdateProjectiles(const network::Packet<network::MyPacketType>& packet, Client& client) {
   const auto update_projectiles = network::PacketFactory<network::MyPacketType>::extract_data_array<network::UpdateProjectile>(packet);
   auto& game_state = client.GetGameState();
   auto& registry = game_state.GetRegistry();
   auto& positions = registry.get_components<Position>();
 
-  for (const auto& [projectile_id, owner_id, new_x, new_y, _] : update_projectiles) {
+  for (const auto& [projectile_id, owner_id, new_x, new_y] : update_projectiles) {
     if (const auto entity = game_state.GetProjectileEntity(projectile_id);
         entity == client::GameState::InvalidEntity) {
       std::cout << "[Client][INFO] Adding new projectile with ID: " << projectile_id
@@ -286,30 +315,36 @@ void MessageDispatcher::HandleRemoveProjectiles(
 const std::array<MessageDispatcher::Handler, static_cast<size_t>(network::MyPacketType::kMaxTypes)> MessageDispatcher::handlers_ = {
   HandlePlayerAssign,     // PlayerAssign
   DefaultHandler,         // PlayerInput
-  HandleUpdatePositions,  // UpdatePosition
-  HandleUpdateProjectiles, // UpdateProjectile
-  HandleRemoveProjectiles,          // Ping
   HandlePlayerJoin,       // PlayerJoin
   HandlePlayerLeave,       // PlayerLeave
-  HandleUpdateProjectiles,
-         // PlayerAssign
+  DefaultHandler,         // PlayerInput
+  DefaultHandler,         // PlayerInput
+  DefaultHandler,         // PlayerInput
+  HandleUpdatePlayers,  // UpdatePosition
+  HandleUpdateEnemies,         // PlayerInput
+  HandleUpdateProjectiles, // UpdateProjectile
+  HandleRemoveProjectiles,          // Ping
 };
 
-
 /*
+
 namespace network {
 enum class MyPacketType : uint32_t {
   kPlayerAssign,       // Server -> Client: Assign an ID to the player
   kPlayerInput,        // Client -> Server: Player's input data
-  kUpdatePosition,     // Server -> Client: Updated position of a player
-  kUpdateProjectile,   // Server -> Client: Updated position of a projectile
-  kRemoveProjectile,   // Server -> Client: Remove a projectile
   kPlayerJoin,         // Server -> Client: Notification of a new player joining
   kPlayerLeave,        // Server -> Client: Notification of a player leaving
   kDisconnect,         // Client -> Server: Player's voluntary disconnection
   kPing,               // Ping packet
   kPong,               // Pong packet
+
+  kUpdatePlayers,      // Server -> Client: Update all player data
+  kUpdateEnemies,      // Server -> Client: Update all enemy data
+  kUpdateProjectile,   // Server -> Client: Updated position of a projectile
+  kRemoveProjectile,   // Server -> Client: Remove a projectile
+
   kMaxTypes            // Maximum number of packet types
 };
 }
+
 */

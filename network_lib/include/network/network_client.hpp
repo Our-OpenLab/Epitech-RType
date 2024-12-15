@@ -1,16 +1,17 @@
 #ifndef NETWORK_CLIENT_HPP_
 #define NETWORK_CLIENT_HPP_
 
-#include <thread>
 #include <asio/io_context.hpp>
+#include <asio/ip/tcp.hpp>
+#include <future>
 #include <memory>
 #include <mutex>
-#include <future>
 #include <sstream>
+#include <thread>
 
 #include "concurrent_queue.hpp"
 #include "protocol.hpp"
-#include "client_connection.hpp"
+#include "tcp_client_connection.hpp"
 
 namespace network {
 template <typename PacketType>
@@ -24,7 +25,7 @@ public:
       asio::ip::tcp::resolver resolver(io_context_);
       const auto endpoints = resolver.resolve(host, service);
 
-      connection_ = std::make_shared<ClientConnection<PacketType>>(io_context_, asio::ip::tcp::socket(io_context_), received_queue_);
+      connection_ = std::make_shared<ClientTCPConnection<PacketType>>(asio::ip::tcp::socket(io_context_), received_queue_);
 
       std::promise<bool> connection_promise;
       auto connection_future = connection_promise.get_future();
@@ -129,7 +130,7 @@ public:
 
   asio::io_context io_context_;
   ConcurrentQueue<Packet<PacketType>> received_queue_;
-  std::shared_ptr<ClientConnection<PacketType>> connection_;
+  std::shared_ptr<ClientTCPConnection<PacketType>> connection_;
   std::thread context_thread_;
 };
 }

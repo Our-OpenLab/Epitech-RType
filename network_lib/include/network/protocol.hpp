@@ -1,14 +1,17 @@
 #ifndef PROTOCOL_HPP_
 #define PROTOCOL_HPP_
 
+#include <asio/ip/udp.hpp>
 #include <cstdint>
-#include <iostream>
-#include <vector>
-#include <memory>
 #include <cstring>
+#include <iostream>
+#include <memory>
 #include <span>
+#include <utility>
+#include <vector>
 
 namespace network {
+
 template <typename PacketType>
 struct Header {
   PacketType type{};
@@ -58,29 +61,58 @@ struct Packet {
 
     return data;
   }
+
+  [[nodiscard]] std::vector<std::uint8_t> data() const {
+    std::vector<std::uint8_t> packet_data(size());
+
+    auto* dest = packet_data.data();
+    std::memcpy(dest, &header, sizeof(header));
+
+    if (!body.empty()) {
+      std::memcpy(dest + sizeof(header), body.data(), body.size());
+    }
+
+    return packet_data;
+  }
 };
 
 template <typename PacketType>
-inline std::ostream& operator<<(std::ostream& os, const Packet<PacketType>& packet) {
+std::ostream& operator<<(std::ostream& os, const Packet<PacketType>& packet) {
   os << "Type: " << static_cast<uint32_t>(packet.header.type)
      << " Size: " << packet.header.size;
   return os;
 }
 
 template <typename PacketType>
-class ServerConnection;
+class TcpServerConnection;
 
 template <typename PacketType>
-class OwnedPacket {
+class OwnedPacketTCP {
   public:
-    std::shared_ptr<ServerConnection<PacketType>> connection;
+    std::shared_ptr<TcpServerConnection<PacketType>> connection;
     Packet<PacketType> packet;
 
-  OwnedPacket(const std::shared_ptr<ServerConnection<PacketType>>& connection, Packet<PacketType> packet)
+  OwnedPacketTCP(const std::shared_ptr<TcpServerConnection<PacketType>>& connection, Packet<PacketType> packet)
       : connection(connection), packet(std::move(packet)) {}
 
-  friend std::ostream& operator<<(std::ostream& os, const OwnedPacket& packet) {
+  friend std::ostream& operator<<(std::ostream& os, const OwnedPacketTCP& packet) {
     os << packet.packet;
+    return os;
+  }
+};
+
+template <typename PacketType>
+class OwnedPacketUDP {
+public:
+  asio::ip::udp::endpoint endpoint;
+  Packet<PacketType> packet;
+
+  OwnedPacketUDP(asio::ip::udp::endpoint endpoint, Packet<PacketType> packet)
+      : endpoint(std::move(endpoint)), packet(std::move(packet)) {}
+
+  friend std::ostream& operator<<(std::ostream& os, const OwnedPacketUDP& packet) {
+    os << "From: " << packet.endpoint.address().to_string() << ":" << packet.endpoint.port()
+       << " - " << packet.packet;
     return os;
   }
 };

@@ -24,6 +24,9 @@ public:
                      float dir_y);
   void RemoveProjectile(uint8_t projectile_id);
 
+  void AddEnemy(float x, float y, AIState::State initial_state = AIState::Idle);
+  void RemoveEnemy(uint32_t enemy_id);
+
   [[nodiscard]] Registry& get_registry() const {
     return registry_;
   }
@@ -38,7 +41,8 @@ private:
   std::unordered_map<uint8_t, Registry::entity_t> player_entities_;
   std::unordered_map<uint32_t, ProjectileData> projectile_entities_;
   uint32_t next_projectile_id_;
-
+  std::unordered_map<uint32_t, Registry::entity_t> enemy_entities_;
+  uint32_t next_enemy_id_ = 0;
   network::NetworkServer<network::MyPacketType>& network_server_;
 };
 

@@ -2,6 +2,7 @@
 #include <server/engine/systems/collision_system.hpp>
 #include <server/engine/systems/movement_system.hpp>
 #include <server/engine/systems/projectile_system.hpp>
+#include <server/engine/systems/enemy_movement_system.hpp>
 
 void GameEngine::InitializeSystems() {
   registry_.register_component<Position>();
@@ -13,9 +14,16 @@ void GameEngine::InitializeSystems() {
   registry_.register_component<DirtyFlag>();
   registry_.register_component<Projectile>();
   registry_.register_component<LastShotTime>();
+  registry_.register_component<AIState>();
+  registry_.register_component<PatrolPath>();
+  registry_.register_component<Aggro>();
+  registry_.register_component<Flocking>();
+  registry_.register_component<Enemy>();
+  registry_.register_component<Target>();
 
   registry_.add_system([](Registry& reg, const float dt, const std::chrono::milliseconds) {
       movement_system(reg, dt);
+      enemy_movement_system(reg, dt);
   });
 
  // registry_.add_system([](Registry& reg, const float dt, const std::chrono::milliseconds) {

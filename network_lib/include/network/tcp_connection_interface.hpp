@@ -1,14 +1,14 @@
-#ifndef CONNECTION_INTERFACE_HPP_
-#define CONNECTION_INTERFACE_HPP_
+#ifndef CONNECTION_TCP_INTERFACE_HPP_
+#define CONNECTION_TCP_INTERFACE_HPP_
 
 #include "protocol.hpp"
 
 namespace network {
 
 template <typename PacketType>
-class ConnectionInterface {
+class TcpConnectionInterface {
  public:
-  virtual ~ConnectionInterface() = default;
+  virtual ~TcpConnectionInterface() = default;
 
   [[nodiscard]] virtual bool is_connected() const = 0;
 
@@ -17,6 +17,7 @@ class ConnectionInterface {
   virtual void send(const Packet<PacketType>& packet) = 0;
   virtual void send(Packet<PacketType>&& packet) = 0;
 };
+
 }  // namespace network
 
-#endif  // CONNECTION_INTERFACE_HPP_
+#endif  // CONNECTION_TCP_INTERFACE_HPP_
