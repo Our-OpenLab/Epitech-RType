@@ -5,7 +5,7 @@
 namespace client {
 
 void GameEngine::InitializeSystems() {
-  registry_.register_component<Player>();
+  registry_.register_component<ClientPlayer>();
   registry_.register_component<Enemy>();
   registry_.register_component<Projectile>();
   registry_.register_component<Position>();

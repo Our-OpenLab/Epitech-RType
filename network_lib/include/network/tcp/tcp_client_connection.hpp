@@ -52,7 +52,7 @@ class TcpClientConnection final : public TcpConnection<PacketType>,
         [self, &connection_result](const std::error_code& ec, const asio::ip::tcp::endpoint&) {
           if (!ec) {
             connection_result.set_value(true);
-            std::cout << "[TCP Client] Successfully connected to server." << std::endl;
+            // std::cout << "[TCP Client] Successfully connected to server." << std::endl;
             self->ReadHeader();
           } else {
             connection_result.set_value(false);

@@ -63,6 +63,10 @@ private:
     handlers_[static_cast<size_t>(MyPacketType::kPlayerLeave)] = [this](const Packet<MyPacketType>& packet) {
       HandlePlayerLeave(packet);
     };
+
+    handlers_[static_cast<size_t>(MyPacketType::kRemoveEnemy)] = [this](const Packet<MyPacketType>& packet) {
+      HandleRemoveEnemy(packet);
+    };
   }
 
   static void DefaultHandler(Packet<MyPacketType>&& packet) {
@@ -71,13 +75,14 @@ private:
   }
 
   void HandlePlayerAssign(const Packet<MyPacketType>& packet) const {
-    const auto [player_id] = PacketFactory<MyPacketType>::ExtractData<PlayerAssign>(packet);
+    const auto [player_id, spawn_x, spawn_y, score] =
+        PacketFactory<MyPacketType>::ExtractData<PlayerAssign>(packet);
 
     client_.SetClientId(player_id);
 
-    std::cout << "[Server][INFO] Assigned Player ID: " << static_cast<int>(player_id) << std::endl;
+    //std::cout << "[Server][INFO] Assigned Player ID: " << static_cast<int>(player_id) << " with spawn position (" << spawn_x << ", " << spawn_y << ").\n";
 
-    const auto entity = client_.GetGameState().AddPlayer(player_id, 0, 0);
+    const auto entity = client_.GetGameState().AddPlayer(player_id, spawn_x, spawn_y, score);
 
     if (entity == client::GameState::InvalidEntity) {
       std::cerr << "[Server][ERROR] Failed to add Player ID: " << static_cast<int>(player_id)
@@ -89,15 +94,21 @@ private:
 
     client_.GetGameState().SetLocalPlayerEntity(entity);
 
-    std::cout << "[Server][INFO] Player " << static_cast<int>(player_id)
-              << " successfully added to GameState.\n";
+    //std::cout << "[Server][INFO] Player " << static_cast<int>(player_id) << " successfully added to GameState.\n";
+
+    const auto udp_port = client_.GetNetworkClient().GetLocalUdpPort();
+    if (udp_port == 0) {
+      std::cerr << "[Client][ERROR] Invalid UDP port. Cannot send to server.\n";
+      client_.Shutdown();
+      return;
+    }
 
     Packet<MyPacketType> udp_port_packet;
     udp_port_packet.header.type = MyPacketType::kUdpPort;
-    udp_port_packet.Push(client_.GetNetworkClient().GetLocalUdpPort());
+    udp_port_packet.Push(udp_port);
 
     client_.GetNetworkClient().SendTcp(std::move(udp_port_packet));
-    std::cout << "[Client][INFO] Sent UDP port: " << client_.GetNetworkClient().GetLocalUdpPort() << " to the server.\n";
+    // std::cout << "[Client][INFO] Sent UDP port: " << udp_port << " to the server.\n";
   }
 
   void HandleUpdatePlayers(const Packet<MyPacketType>& packet) const {
@@ -106,20 +117,24 @@ private:
     auto& game_state = client_.GetGameState();
     auto& registry = game_state.GetRegistry();
     auto& positions = registry.get_components<Position>();
+    auto& client_player = registry.get_components<ClientPlayer>();
 
-    for (const auto& [player_id, new_x, new_y] : update_players) {
+    for (const auto& [player_id, new_x, new_y, score] : update_players) {
       if (const auto entity = game_state.GetPlayer(player_id);
           entity == client::GameState::InvalidEntity) {
         std::cout << "[Client][INFO] Adding new player with ID: " << static_cast<int>(player_id) << '\n';
 
-        game_state.AddPlayer(player_id, new_x, new_y);
+        game_state.AddPlayer(player_id, new_x, new_y, score);
 
         std::cout << "[Client][INFO] Added Player " << static_cast<int>(player_id)
                   << " at position (" << new_x << ", " << new_y << ")\n";
-          } else if (entity < positions.size() && positions[entity].has_value()) {
+          } else if (entity < positions.size() && positions[entity].has_value() && client_player[entity].has_value()) {
             auto& [x, y] = *positions[entity];
+            auto& [_, player_score] = *client_player[entity];
             x = new_x;
             y = new_y;
+
+            player_score = score;
 
             std::cout << "[Client][INFO] Updated position for Player " << static_cast<int>(player_id)
                       << " to (" << new_x << ", " << new_y << ")\n";
@@ -213,12 +228,12 @@ private:
   }
 
   void HandlePlayerJoin(const Packet<MyPacketType>& packet) const {
-    auto [player_id, x, y] = PacketFactory<MyPacketType>::ExtractData<PlayerJoin>(packet);
+    auto [player_id, x, y, score] = PacketFactory<MyPacketType>::ExtractData<PlayerJoin>(packet);
 
     std::cout << "[Client][INFO] Player " << static_cast<int>(player_id)
               << " joined the game at position (" << x << ", " << y << ").\n";
 
-    client_.GetGameState().AddPlayer(player_id, x, y);
+    client_.GetGameState().AddPlayer(player_id, x, y, score);
 
     std::cout << "[Client][INFO] Player " << static_cast<int>(player_id)
               << " successfully added to local GameState.\n";
@@ -239,6 +254,12 @@ private:
     const auto [projectile_id] = PacketFactory<MyPacketType>::ExtractData<RemoveProjectile>(packet);
 
     client_.GetGameState().RemoveProjectile(projectile_id);
+  }
+
+  void HandleRemoveEnemy(const Packet<MyPacketType>& packet) const {
+    const auto [enemy_id] = PacketFactory<MyPacketType>::ExtractData<RemoveEnemy>(packet);
+
+    client_.GetGameState().RemoveEnemy(enemy_id);
   }
 
   Client& client_;

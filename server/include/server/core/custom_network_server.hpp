@@ -17,7 +17,7 @@ class CustomNetworkServer final : public NetworkServer<PacketType> {
 public:
   explicit CustomNetworkServer(uint16_t tcp_port, uint16_t udp_port, GameState& game_state, EventQueue& event_queue);
 
-  void process_message(OwnedPacket<PacketType>&& owned_packet);
+  void ProcessMessage(OwnedPacket<PacketType>&& owned_packet);
 
   [[nodiscard]] GameState& GetGameState() const;
 

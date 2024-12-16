@@ -32,7 +32,7 @@ public:
   void DrawStarguy(const glm::vec2& map_position, const glm::vec2& size) const;
   void DrawProjectile(const glm::vec2& map_position, const glm::vec2& size) const;
   void DrawEnemy(const glm::vec2& map_position, const glm::vec2& size) const;
-
+  void DrawScore(int score, const glm::vec2& position) const;
 
   void Clear() const;
   void Present() const;
@@ -55,6 +55,7 @@ private:
   GLuint starguy_program_{0};
   GLuint projectile_program_{0};
   GLuint enemy_program_{0};
+  GLuint score_shader_program_{0};
 
   void InitOpenGL();
   GLuint LoadShaders(const char* vertex_source, const char* fragment_source);

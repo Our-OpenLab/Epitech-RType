@@ -149,6 +149,23 @@ class NetworkServer {
   }
 
   /**
+  * @brief Broadcasts a packet to all UDP endpoints except one.
+  *
+  * @tparam T The type of the packet.
+  * @param excluded_endpoint The endpoint to exclude.
+  * @param packet The packet to broadcast.
+  */
+  template <typename T>
+  void BroadcastToOthersUdp(const asio::ip::udp::endpoint& excluded_endpoint,
+                            T&& packet) {
+    for (const auto& [udp_endpoint, connection] : udp_to_tcp_map_) {
+      if (udp_endpoint != excluded_endpoint) {
+        udp_connection_->SendTo(std::forward<T>(packet), udp_endpoint);
+      }
+    }
+  }
+
+  /**
    * @brief Sends a packet to a specific TCP connection by ID.
    *
    * @tparam T The type of the packet.
@@ -167,6 +184,20 @@ class NetworkServer {
     std::cerr << "[Server][ERROR] Failed to send packet to TCP connection ID "
               << connection_id << std::endl;
     return false;
+  }
+
+  /**
+   * @brief Sends a packet to a specific UDP endpoint.
+   *
+   * @tparam T The type of the packet.
+   * @param endpoint The target UDP endpoint.
+   * @param packet The packet to send.
+   */
+  template <typename T>
+  void SendToUdp(const asio::ip::udp::endpoint& endpoint, T&& packet) {
+    if (udp_connection_) {
+      udp_connection_->SendTo(std::forward<T>(packet), endpoint);
+    }
   }
 
   /**

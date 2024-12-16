@@ -35,7 +35,7 @@ class TcpConnection : public TcpConnectionInterface<PacketType> {
    *
    * Ensures the connection is properly disconnected.
    */
-  ~TcpConnection() override { Disconnect(); }
+  ~TcpConnection() override { TcpConnection::Disconnect(); }
 
   /**
    * @brief Disconnects the connection.

@@ -15,8 +15,8 @@ namespace network {
 
 class MessageDispatcher {
  public:
-  using TCPHandler = std::function<void(Packet<MyPacketType>&, const std::shared_ptr<TcpServerConnection<MyPacketType>>&)>;
-  using UDPHandler = std::function<void(Packet<MyPacketType>&, const asio::ip::udp::endpoint&)>;
+  using TCPHandler = std::function<void(Packet<MyPacketType>&&, const std::shared_ptr<TcpServerConnection<MyPacketType>>&)>;
+  using UDPHandler = std::function<void(Packet<MyPacketType>&&, const asio::ip::udp::endpoint&)>;
 
   explicit MessageDispatcher(CustomNetworkServer<MyPacketType>& server)
       : server_(server) {
@@ -39,7 +39,7 @@ class MessageDispatcher {
 
     if (const auto index = static_cast<size_t>(packet.header.type);
         index < tcp_handlers_.size() && tcp_handlers_[index]) {
-      tcp_handlers_[index](packet, connection);
+      tcp_handlers_[index](std::move(packet), connection);
     } else {
       DefaultTCPHandler(std::move(packet), connection);
     }
@@ -51,7 +51,7 @@ class MessageDispatcher {
 
     if (const auto index = static_cast<size_t>(packet.header.type);
         index < udp_handlers_.size() && udp_handlers_[index]) {
-      udp_handlers_[index](packet, endpoint);
+      udp_handlers_[index](std::move(packet), endpoint);
     } else {
       DefaultUDPHandler(std::move(packet), endpoint);
     }
@@ -67,7 +67,7 @@ class MessageDispatcher {
               << packet << std::endl;
   }
 
-  static void HandlePingTCP(Packet<MyPacketType>& packet, const std::shared_ptr<TcpServerConnection<MyPacketType>>& connection) {
+  static void HandlePingTCP(Packet<MyPacketType>&& packet, const std::shared_ptr<TcpServerConnection<MyPacketType>>& connection) {
     try {
       if (packet.body.size() == sizeof(std::uint32_t)) {
         packet.header.type = MyPacketType::kPong;
@@ -80,13 +80,12 @@ class MessageDispatcher {
     }
   }
 
-  static void HandlePingUdp(Packet<MyPacketType>& packet, const asio::ip::udp::endpoint& endpoint) {
+  void HandlePingUdp(Packet<MyPacketType>&& packet, const asio::ip::udp::endpoint& endpoint) const {
     try {
       if (packet.body.size() == sizeof(std::uint32_t)) {
         packet.header.type = MyPacketType::kPong;
-#warning to do
-        //server_.sed to udp ...
-        std::cout << "[MessageDispatcher][UDP] Ping received from: " << endpoint << "\n";
+        server_.SendToUdp(endpoint, std::move(packet));
+        // std::cout << "[MessageDispatcher][UDP] Ping received from: " << endpoint << "\n";
       } else {
         std::cerr << "[MessageDispatcher][UDP] Ping packet has insufficient data.\n";
       }
@@ -95,8 +94,7 @@ class MessageDispatcher {
     }
   }
 
-  void HandlePlayerInputUDP(
-      const Packet<MyPacketType>& packet, const asio::ip::udp::endpoint& endpoint) const {
+  void HandlePlayerInputUDP(Packet<MyPacketType>&& packet, const asio::ip::udp::endpoint& /*endpoint*/) const {
     try {
       if (packet.body.size() == sizeof(PlayerInput)) {
         auto& game_state = server_.GetGameState();
@@ -108,7 +106,6 @@ class MessageDispatcher {
         if (entity == static_cast<Registry::entity_t>(-1)) {
           std::cerr << "[MessageDispatcher] Player entity not found for player_id: "
                     << static_cast<int>(player_id) << "\n";
-          //connection->disconnect();
           return;
         }
 
@@ -160,7 +157,7 @@ class MessageDispatcher {
     }
   }
 
-  void HandleUdpPort(const Packet<MyPacketType>& packet, const std::shared_ptr<TcpServerConnection<MyPacketType>>& connection) const {
+  void HandleUdpPort(Packet<MyPacketType>&& packet, const std::shared_ptr<TcpServerConnection<MyPacketType>>& connection) const {
     try {
       if (packet.body.size() == sizeof(uint16_t)) {
         const auto udp_port = PacketFactory<MyPacketType>::ExtractData<uint16_t>(packet);
@@ -182,20 +179,20 @@ class MessageDispatcher {
     tcp_handlers_.fill(nullptr);
     udp_handlers_.fill(nullptr);
 
-    tcp_handlers_[static_cast<size_t>(MyPacketType::kPing)] = [this](Packet<MyPacketType>& packet, const std::shared_ptr<TcpServerConnection<MyPacketType>>& connection) {
-      HandlePingTCP(packet, connection);
+    tcp_handlers_[static_cast<size_t>(MyPacketType::kPing)] = [this](Packet<MyPacketType>&& packet, const std::shared_ptr<TcpServerConnection<MyPacketType>>& connection) {
+      HandlePingTCP(std::move(packet), connection);
     };
 
-    tcp_handlers_[static_cast<size_t>(MyPacketType::kUdpPort)] = [this](const Packet<MyPacketType>& packet, const std::shared_ptr<TcpServerConnection<MyPacketType>>& connection) {
-      HandleUdpPort(packet, connection);
+    tcp_handlers_[static_cast<size_t>(MyPacketType::kUdpPort)] = [this](Packet<MyPacketType>&& packet, const std::shared_ptr<TcpServerConnection<MyPacketType>>& connection) {
+      HandleUdpPort(std::move(packet), connection);
     };
 
-    udp_handlers_[static_cast<size_t>(MyPacketType::kPing)] = [this](Packet<MyPacketType>& packet, const asio::ip::udp::endpoint& endpoint) {
-      HandlePingUdp(packet, endpoint);
+    udp_handlers_[static_cast<size_t>(MyPacketType::kPing)] = [this](Packet<MyPacketType>&& packet, const asio::ip::udp::endpoint& endpoint) {
+      HandlePingUdp(std::move(packet), endpoint);
     };
 
-    udp_handlers_[static_cast<size_t>(MyPacketType::kPlayerInput)] = [this](const Packet<MyPacketType>& packet, const asio::ip::udp::endpoint& endpoint) {
-      HandlePlayerInputUDP(packet, endpoint);
+    udp_handlers_[static_cast<size_t>(MyPacketType::kPlayerInput)] = [this](Packet<MyPacketType>&& packet, const asio::ip::udp::endpoint& endpoint) {
+      HandlePlayerInputUDP(std::move(packet), endpoint);
     };
   }
 

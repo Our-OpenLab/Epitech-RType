@@ -12,7 +12,7 @@
 
 class GameState {
 public:
-  explicit GameState(Registry& registry, network::NetworkServer<network::MyPacketType> &network_server) : registry_{registry}, network_server_(network_server), next_projectile_id_{0} {}
+  explicit GameState(Registry& registry, network::NetworkServer<network::MyPacketType> &network_server) : registry_{registry}, next_projectile_id_{0}, network_server_(network_server) {}
 
   ~GameState() = default;
 
@@ -25,7 +25,8 @@ public:
   void RemoveProjectile(uint8_t projectile_id);
 
   void AddEnemy(float x, float y, AIState::State initial_state = AIState::Idle);
-  void RemoveEnemy(uint32_t enemy_id);
+  void RemoveEnemy(uint8_t enemy_id);
+  void AddScoreToPlayer(uint8_t player_id, int score_to_add);
 
   [[nodiscard]] Registry& get_registry() const {
     return registry_;

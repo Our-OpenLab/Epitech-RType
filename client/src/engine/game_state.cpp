@@ -4,7 +4,7 @@
 namespace client {
 
 Registry::entity_t GameState::AddPlayer(const uint8_t player_id, const float x,
-                                        const float y) {
+                                        const float y, const uint16_t score) {
   if (player_entities_.contains(player_id)) {
     std::cout << "[GameState][WARN] Player ID " << static_cast<int>(player_id)
               << " already exists. Skipping addition.\n";
@@ -13,8 +13,8 @@ Registry::entity_t GameState::AddPlayer(const uint8_t player_id, const float x,
 
   const auto entity = registry_.spawn_entity();
 
-  registry_.add_component<Position>(entity, {x, y});
-  registry_.add_component<Player>(entity, Player{player_id});
+  registry_.emplace_component<Position>(entity, Position{x, y});
+  registry_.emplace_component<ClientPlayer>(entity, ClientPlayer{player_id, score});
 
   player_entities_[player_id] = entity;
 
@@ -107,8 +107,8 @@ void GameState::AddEnemy(const uint8_t enemy_id, const float x,
 
   const auto entity = registry_.spawn_entity();
 
-  registry_.add_component<Enemy>(entity, Enemy{enemy_id});
-  registry_.add_component<Position>(entity, {x, y});
+  registry_.emplace_component<Enemy>(entity, Enemy{enemy_id});
+  registry_.emplace_component<Position>(entity, Position{x, y});
 
   enemy_entities_[enemy_id] = entity;
 

@@ -31,23 +31,20 @@ inline void projectile_system(Registry& registry, const float delta_time, GameSt
         auto& [vx, vy] = *vel_opt;
         auto& is_dirty = dirty_opt->is_dirty;
 
-        // Mettre à jour la position en fonction de la vélocité actuelle
         const float old_x = x;
         const float old_y = y;
 
         x += vx * delta_time;
         y += vy * delta_time;
 
-        // Vérifier si le projectile s'est déplacé au-delà du seuil
         if ((x - old_x) * (x - old_x) +
             (y - old_y) * (y - old_y) > kkMovementThresholdSquared) {
             is_dirty = true;
         }
 
-        // Supprimer les projectiles hors des limites
         if (x < kGameBoundaryLeft || x > kGameBoundaryRight ||
             y < kGameBoundaryTop || y > kGameBoundaryBottom) {
-            const auto& [owner_id, projectile_id] = *projectile_opt;
+            const auto& [owner_id, projectile_id, unused1, unused2] = *projectile_opt;
             game_state.RemoveProjectile(projectile_id);
 
             std::cout << "[ProjectileSystem] Removed projectile ID "

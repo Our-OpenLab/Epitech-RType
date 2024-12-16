@@ -30,9 +30,7 @@ class UdpConnection : public UdpConnectionInterface<PacketType> {
    * @param port The local port to bind the UDP socket.
    */
   explicit UdpConnection(asio::io_context& io_context, uint16_t port)
-      : socket_(io_context, asio::ip::udp::endpoint(asio::ip::udp::v4(), port)) {
-    std::cout << "[UDP][INFO] Socket created on port " << port << std::endl;
-  }
+      : socket_(io_context, asio::ip::udp::endpoint(asio::ip::udp::v4(), port)) {}
 
   /**
    * @brief Destructor to clean up resources.
@@ -57,7 +55,6 @@ class UdpConnection : public UdpConnectionInterface<PacketType> {
     try {
       if (socket_.is_open()) {
         socket_.close();
-        std::cout << "[UDP][INFO] Socket closed." << std::endl;
       }
     } catch (const std::exception& e) {
       std::cerr << "[UDP][ERROR] Failed to close socket: " << e.what() << std::endl;
@@ -129,7 +126,7 @@ class UdpConnection : public UdpConnectionInterface<PacketType> {
               }
               self->OnPacketReceived(std::move(packet));
             }
-            self->ReceiveFrom();  // Continue listening for packets.
+            self->ReceiveFrom();
           } else {
             std::cerr << "[UDP][ERROR] Receive error: " << ec.message() << std::endl;
           }
@@ -158,7 +155,7 @@ class UdpConnection : public UdpConnectionInterface<PacketType> {
           if (ec) {
             std::cerr << "[UDP][ERROR] Failed to send packet: " << ec.message() << std::endl;
           } else {
-            std::cout << "[UDP][INFO] Packet sent (" << bytes_transferred << " bytes)." << std::endl;
+            // std::cout << "[UDP][INFO] Packet sent (" << bytes_transferred << " bytes)." << std::endl;
           }
         });
   }

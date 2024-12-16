@@ -15,6 +15,7 @@ public:
       : containers_(std::tie(containers...)),
         max_size_(compute_max_size(containers...)) {}
 
+
   class Iterator {
   public:
     using iterator_category = std::forward_iterator_tag;
@@ -80,7 +81,12 @@ private:
   static size_t compute_max_size(Containers&... containers) {
     return std::min({containers.size()...});
   }
+
 };
+
+template <typename... Containers>
+Zipper(Containers&...) -> Zipper<Containers...>;
+
 }
 
 #endif // ZIPPER_HPP_

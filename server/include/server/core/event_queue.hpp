@@ -7,12 +7,12 @@
 
 class EventQueue {
 public:
-  void push(std::function<void()>&& event) {
+  void Push(std::function<void()>&& event) {
     std::lock_guard<std::mutex> lock(mutex_);
     events_.emplace(std::move(event));
   }
 
-  void process() {
+  void Process() {
     std::queue<std::function<void()>> local_queue;
 
     {

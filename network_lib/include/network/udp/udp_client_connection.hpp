@@ -83,6 +83,12 @@ class UdpClientConnection final : public UdpConnection<PacketType>,
   }
 
  private:
+  /**
+   * @brief Queue to store received packets.
+   *
+   * Shared between the client and its handler, this queue stores packets
+   * received from the server for further processing.
+   */
   ConcurrentQueue<Packet<PacketType>>& received_queue_;
 };
 

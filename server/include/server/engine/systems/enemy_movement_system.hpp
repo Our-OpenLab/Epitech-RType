@@ -16,15 +16,15 @@ constexpr float kMinTargetDistance = 1.0f;
 inline void enemy_movement_system(Registry& registry, const float delta_time) {
     auto& positions = registry.get_components<Position>();
     auto& velocities = registry.get_components<Velocity>();
+    auto& dirty_flags = registry.get_components<DirtyFlag>();
     auto& ai_states = registry.get_components<AIState>();
     auto& targets = registry.get_components<Target>();
-    auto& player_positions = registry.get_components<Player>();
+    auto& player_positions = registry.get_components<ServerPlayer>();
 
-    // Parcourir tous les ennemis
-    ecs::Zipper zipper(positions, velocities, ai_states, targets);
+    ecs::Zipper zipper(positions, velocities, ai_states, targets, dirty_flags);
     for (auto iter = zipper.begin(); iter != zipper.end(); ++iter) {
-        auto&& [pos_opt, vel_opt, ai_state_opt, target_opt] = *iter;
-        if (!pos_opt.has_value() || !vel_opt.has_value() || !ai_state_opt.has_value() || !target_opt.has_value()) {
+        auto&& [pos_opt, vel_opt, ai_state_opt, target_opt, dirty_opt] = *iter;
+        if (!pos_opt.has_value() || !vel_opt.has_value() || !ai_state_opt.has_value() || !target_opt.has_value() || !dirty_opt.has_value()) {
             continue;
         }
 
@@ -32,6 +32,7 @@ inline void enemy_movement_system(Registry& registry, const float delta_time) {
         auto& velocity = *vel_opt;
         auto& ai_state = *ai_state_opt;
         auto& target = *target_opt;
+        auto& [is_dirty] = *dirty_opt;
 
         switch (ai_state.state) {
             case AIState::Idle:
@@ -128,6 +129,8 @@ inline void enemy_movement_system(Registry& registry, const float delta_time) {
         // Mise à jour de la position
         position.x += velocity.vx * delta_time;
         position.y += velocity.vy * delta_time;
+
+        is_dirty = true;
     }
 }
 

@@ -19,13 +19,14 @@ public:
 
   ~GameState() = default;
 
-  Registry::entity_t AddPlayer(uint8_t player_id, float x, float y);
-  Registry::entity_t GetPlayer(uint8_t player_id) const;
+  Registry::entity_t AddPlayer(uint8_t player_id, float x, float y,
+                               uint16_t score);
+  [[nodiscard]] Registry::entity_t GetPlayer(uint8_t player_id) const;
   void RemovePlayer(uint8_t player_id);
 
 
   void AddProjectile(uint8_t projectile_id, uint8_t owner_id, float x, float y);
-  Registry::entity_t GetProjectileEntity(uint8_t projectile_id) const;
+  [[nodiscard]] Registry::entity_t GetProjectileEntity(uint8_t projectile_id) const;
   void RemoveProjectile(uint8_t projectile_id);
 
   void AddEnemy(uint8_t enemy_id, float x, float y);
@@ -53,6 +54,18 @@ public:
     return Position{};
   }
 
+  [[nodiscard]] uint16_t GetLocalPlayerScore() const {
+    if (local_player_entity_ == InvalidEntity) {
+      return 0;
+    }
+
+    if (const auto& players = registry_.get_components<ClientPlayer>();
+        local_player_entity_ < players.size() && players[local_player_entity_].has_value()) {
+          const auto& [id, score] = *players[local_player_entity_];
+          return score;
+        }
+    return 0;
+  }
 
 
 private:
