@@ -1,149 +1,236 @@
-#ifndef PROTOCOL_HPP_
-#define PROTOCOL_HPP_
+#ifndef NETWORK_PROTOCOL_HPP_
+#define NETWORK_PROTOCOL_HPP_
 
+#include <asio/ip/udp.hpp>
 #include <cstdint>
-#include <iostream>
-#include <vector>
-#include <memory>
 #include <cstring>
+#include <iostream>
+#include <memory>
 #include <span>
+#include <utility>
+#include <vector>
 
 namespace network {
+
+/**
+ * @brief Header structure for packets.
+ *
+ * @tparam PacketType Enum type representing the packet type.
+ */
 template <typename PacketType>
 struct Header {
-  PacketType type{};
-  std::uint32_t size{};
+  PacketType type{};       ///< The type of the packet.
+  uint32_t size{};         ///< The size of the packet body in bytes.
 };
 
+/**
+ * @brief Generic Packet structure.
+ *
+ * Combines a header and a body to represent a packet.
+ *
+ * @tparam PacketType Enum type representing the packet type.
+ */
 template <typename PacketType>
 struct Packet {
-  Header<PacketType> header{};
-  std::vector<std::uint8_t> body;
+  Header<PacketType> header{};  ///< Header of the packet.
+  std::vector<uint8_t> body;    ///< Body of the packet.
 
-  [[nodiscard]] std::size_t size() const {
-    return sizeof(header) + body.size();
-  }
+  /**
+   * @brief Returns the total size of the packet (header + body).
+   *
+   * @return Total size in bytes.
+   */
+  [[nodiscard]] size_t Size() const { return sizeof(header) + body.size(); }
 
+  /**
+   * @brief Pushes data to the packet body.
+   *
+   * @tparam T Type of data to push. Must be trivially copyable.
+   * @param data Data to push into the body.
+   */
   template <typename T>
-  void push(const T& data) {
-    static_assert(std::is_trivially_copyable_v<T>,
-                  "DataType must be trivially copyable");
-
-    const size_t currentSize = body.size();
-
-    body.resize(currentSize + sizeof(T));
-
-    std::memcpy(body.data() + currentSize, &data, sizeof(T));
-
+  void Push(const T& data) {
+    static_assert(std::is_trivially_copyable_v<T>, "DataType must be trivially copyable");
+    const size_t current_size = body.size();
+    body.resize(current_size + sizeof(T));
+    std::memcpy(body.data() + current_size, &data, sizeof(T));
     header.size += sizeof(T);
   }
 
+  /**
+   * @brief Extracts data from the packet body.
+   *
+   * @tparam T Type of data to extract. Must be trivially copyable.
+   * @return Extracted data.
+   * @throws std::out_of_range If the body size is insufficient.
+   */
   template <typename T>
-  T extract() {
-    static_assert(std::is_trivially_copyable_v<T>,
-                  "DataType must be trivially copyable");
-
+  T Extract() {
+    static_assert(std::is_trivially_copyable_v<T>, "DataType must be trivially copyable");
     if (body.size() < sizeof(T)) {
-      throw std::out_of_range("extractFromBody: Not enough data in body");
+      throw std::out_of_range("Extract: Not enough data in the body");
     }
-
-    const size_t remainingSize = body.size() - sizeof(T);
-
+    const size_t remaining_size = body.size() - sizeof(T);
     T data;
-    std::memcpy(&data, body.data() + remainingSize, sizeof(T));
-
-    body.resize(remainingSize);
-
-    header.size = remainingSize;
-
+    std::memcpy(&data, body.data() + remaining_size, sizeof(T));
+    body.resize(remaining_size);
+    header.size = remaining_size;
     return data;
+  }
+
+  /**
+   * @brief Converts the packet into a byte vector.
+   *
+   * @return Byte vector representation of the packet.
+   */
+  [[nodiscard]] std::vector<uint8_t> Data() const {
+    std::vector<uint8_t> packet_data(Size());
+    auto* dest = packet_data.data();
+    std::memcpy(dest, &header, sizeof(header));
+    if (!body.empty()) {
+      std::memcpy(dest + sizeof(header), body.data(), body.size());
+    }
+    return packet_data;
   }
 };
 
+/**
+ * @brief Output stream operator for Packet.
+ *
+ * @tparam PacketType Enum type representing the packet type.
+ * @param os Output stream.
+ * @param packet Packet to output.
+ * @return Reference to the output stream.
+ */
 template <typename PacketType>
-inline std::ostream& operator<<(std::ostream& os, const Packet<PacketType>& packet) {
+std::ostream& operator<<(std::ostream& os, const Packet<PacketType>& packet) {
   os << "Type: " << static_cast<uint32_t>(packet.header.type)
      << " Size: " << packet.header.size;
   return os;
 }
 
 template <typename PacketType>
-class ServerConnection;
+class TcpServerConnection;
 
+/**
+ * @brief Represents a TCP-owned packet.
+ *
+ * @tparam PacketType Enum type representing the packet type.
+ */
 template <typename PacketType>
-class OwnedPacket {
-  public:
-    std::shared_ptr<ServerConnection<PacketType>> connection;
-    Packet<PacketType> packet;
+class OwnedPacketTCP {
+ public:
+  std::shared_ptr<TcpServerConnection<PacketType>> connection;  ///< TCP connection.
+  Packet<PacketType> packet;  ///< Packet data.
 
-  OwnedPacket(const std::shared_ptr<ServerConnection<PacketType>>& connection, Packet<PacketType> packet)
+  OwnedPacketTCP(const std::shared_ptr<TcpServerConnection<PacketType>>& connection,
+                 Packet<PacketType> packet)
       : connection(connection), packet(std::move(packet)) {}
 
-  friend std::ostream& operator<<(std::ostream& os, const OwnedPacket& packet) {
-    os << packet.packet;
+  friend std::ostream& operator<<(std::ostream& os, const OwnedPacketTCP& owned_packet) {
+    os << owned_packet.packet;
     return os;
   }
 };
 
+/**
+ * @brief Represents a UDP-owned packet.
+ *
+ * @tparam PacketType Enum type representing the packet type.
+ */
 template <typename PacketType>
-class PacketFactory {
-public:
-  template <typename T>
-  static Packet<PacketType> create_packet(PacketType type, const T& data) {
-    static_assert(std::is_trivially_copyable_v<T>,
-                  "T must be trivially copyable");
+class OwnedPacketUDP {
+ public:
+  asio::ip::udp::endpoint endpoint;  ///< UDP endpoint.
+  Packet<PacketType> packet;         ///< Packet data.
 
-    const auto raw_data = reinterpret_cast<const uint8_t*>(&data);
+  OwnedPacketUDP(asio::ip::udp::endpoint endpoint, Packet<PacketType> packet)
+      : endpoint(std::move(endpoint)), packet(std::move(packet)) {}
 
-    Packet<PacketType> packet {
-      .header = {
-        .type = type,
-        .size = sizeof(T),
-    },
-    .body = std::vector<uint8_t>(raw_data, raw_data + sizeof(T))
+  friend std::ostream& operator<<(std::ostream& os, const OwnedPacketUDP& owned_packet) {
+    os << "From: " << owned_packet.endpoint.address().to_string() << ":"
+       << owned_packet.endpoint.port() << " - " << owned_packet.packet;
+    return os;
+  }
 };
 
-    return packet;
+/**
+ * @brief Utility class for creating and extracting packets.
+ *
+ * @tparam PacketType Enum type representing the packet type.
+ */
+template <typename PacketType>
+class PacketFactory {
+ public:
+  /**
+   * @brief Creates a packet with a single data element.
+   *
+   * @tparam T Type of the data. Must be trivially copyable.
+   * @param type Packet type.
+   * @param data Data to include in the packet.
+   * @return The created packet.
+   */
+  template <typename T>
+  static Packet<PacketType> CreatePacket(PacketType type, const T& data) {
+    static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+    const auto raw_data = reinterpret_cast<const uint8_t*>(&data);
+
+    return Packet<PacketType>{
+        .header = {.type = type, .size = sizeof(T)},
+        .body = std::vector<uint8_t>(raw_data, raw_data + sizeof(T))};
   }
 
+  /**
+   * @brief Creates a packet from a span of data.
+   *
+   * @tparam T Type of the data in the span. Must be trivially copyable.
+   * @param type Packet type.
+   * @param data Data span to include in the packet.
+   * @return The created packet.
+   */
   template <typename T>
-  static Packet<PacketType> create_packet(PacketType type, std::span<T> data) {
-    static_assert(std::is_trivially_copyable_v<T>,
-                  "T must be trivially copyable");
-
+  static Packet<PacketType> CreatePacket(PacketType type, std::span<T> data) {
+    static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
     const size_t total_size = data.size_bytes();
 
-    Packet<PacketType> packet{
-      .header = {
-        .type = type,
-        .size = static_cast<uint32_t>(total_size),
-    },
-    .body = std::vector<uint8_t>(reinterpret_cast<const uint8_t*>(data.data()),
-                                 reinterpret_cast<const uint8_t*>(data.data()) + total_size)};
-
-    return packet;
+    return Packet<PacketType>{
+        .header = {.type = type, .size = static_cast<uint32_t>(total_size)},
+        .body = std::vector<uint8_t>(
+            reinterpret_cast<const uint8_t*>(data.data()),
+            reinterpret_cast<const uint8_t*>(data.data()) + total_size)};
   }
 
+  /**
+   * @brief Extracts a single data element from a packet.
+   *
+   * @tparam T Type of the data. Must be trivially copyable.
+   * @param packet The packet to extract data from.
+   * @return Extracted data.
+   * @throws std::out_of_range If the packet size is invalid.
+   */
   template <typename T>
-  static T extract_data(const Packet<PacketType>& packet) {
+  static T ExtractData(const Packet<PacketType>& packet) {
     static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
-
     if (packet.body.size() != sizeof(T)) {
-      throw std::out_of_range("Packet body size does not match the expected structure size");
+      throw std::out_of_range("Packet body size does not match expected size");
     }
-
     return *reinterpret_cast<const T*>(packet.body.data());
   }
 
+  /**
+   * @brief Extracts an array of data elements from a packet.
+   *
+   * @tparam T Type of the data. Must be trivially copyable.
+   * @param packet The packet to extract data from.
+   * @return Extracted data as a vector.
+   * @throws std::out_of_range If the packet size is invalid.
+   */
   template <typename T>
-  static std::vector<T> extract_data_array(const Packet<PacketType>& packet) {
-    static_assert(std::is_trivially_copyable_v<T>,
-                  "T must be trivially copyable");
-
+  static std::vector<T> ExtractDataArray(const Packet<PacketType>& packet) {
+    static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
     if (packet.body.size() % sizeof(T) != 0) {
-      throw std::out_of_range("Packet body size is not a multiple of the expected structure size");
+      throw std::out_of_range("Packet body size is not a multiple of the expected size");
     }
-
     const size_t count = packet.body.size() / sizeof(T);
     const auto* raw_data = reinterpret_cast<const T*>(packet.body.data());
     return std::vector<T>(raw_data, raw_data + count);
@@ -152,4 +239,4 @@ public:
 
 }  // namespace network
 
-#endif  // PROTOCOL_HPP_
+#endif  // NETWORK_PROTOCOL_HPP_

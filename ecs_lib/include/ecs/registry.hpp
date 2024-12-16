@@ -61,6 +61,17 @@ public:
     return *cache;
   }
 
+  template <typename Component>
+  Component* get_component(const entity_t& entity) {
+    auto& components = get_components<Component>();
+    if (entity < components.size()) {
+      if (auto& comp_opt = components[entity]; comp_opt.has_value()) {
+        return &(*comp_opt);
+      }
+    }
+    return nullptr;
+  }
+
   entity_t spawn_entity() {
     if (!dead_entities_.empty()) {
       //const entity_t id = dead_entities_.back();

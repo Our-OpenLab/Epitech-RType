@@ -8,6 +8,9 @@
 namespace network {
 struct PlayerAssign {
   uint8_t player_id;
+  float spawn_x;
+  float spawn_y;
+  uint16_t score;
 };
 
 struct PlayerInput {
@@ -18,24 +21,10 @@ struct PlayerInput {
   uint32_t timestamp;
 };
 
-struct UpdatePosition {
-  uint8_t player_id;
-  float x;
-  float y;
-  uint32_t timestamp;
-};
-
-struct UpdateProjectile {
-  uint8_t projectile_id;
-  uint8_t owner_id;
-  float x;
-  float y;
-  uint32_t timestamp;
-};
-
 struct PlayerJoin {
   uint8_t player_id;
   float x, y;
+  uint16_t score;
 };
 
 struct PlayerLeave {
@@ -44,6 +33,34 @@ struct PlayerLeave {
 
 struct RemoveProjectile {
   uint8_t projectile_id;
+};
+
+struct RemoveEnemy {
+  uint8_t enemy_id;
+};
+
+struct UpdatePlayer {
+  uint8_t player_id;
+  float x;
+  float y;
+  uint16_t score;
+};
+
+struct UpdateEnemy {
+  uint8_t enemy_id;
+  float x;
+  float y;
+};
+
+struct UpdateProjectile {
+  uint8_t projectile_id;
+  uint8_t owner_id;
+  float x;
+  float y;
+};
+
+struct UdpPort {
+  uint16_t port;
 };
 
 }

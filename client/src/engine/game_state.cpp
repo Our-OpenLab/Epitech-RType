@@ -4,7 +4,7 @@
 namespace client {
 
 Registry::entity_t GameState::AddPlayer(const uint8_t player_id, const float x,
-                                        const float y) {
+                                        const float y, const uint16_t score) {
   if (player_entities_.contains(player_id)) {
     std::cout << "[GameState][WARN] Player ID " << static_cast<int>(player_id)
               << " already exists. Skipping addition.\n";
@@ -13,9 +13,8 @@ Registry::entity_t GameState::AddPlayer(const uint8_t player_id, const float x,
 
   const auto entity = registry_.spawn_entity();
 
-  registry_.add_component<Position>(entity, {x, y});
-  registry_.add_component<Player>(entity, Player{player_id});
-  registry_.add_component<DirtyFlag>(entity, DirtyFlag{true});
+  registry_.emplace_component<Position>(entity, Position{x, y});
+  registry_.emplace_component<ClientPlayer>(entity, ClientPlayer{player_id, score});
 
   player_entities_[player_id] = entity;
 
@@ -63,8 +62,8 @@ void GameState::AddProjectile(const uint8_t projectile_id,
 
   const auto entity = registry_.spawn_entity();
 
-  registry_.emplace_component<Position>(entity, Position{x, y});
   registry_.emplace_component<Projectile>(entity, Projectile{owner_id, projectile_id});
+  registry_.emplace_component<Position>(entity, Position{x, y});
 
   projectile_entities_[projectile_id] = entity;
 
@@ -98,5 +97,50 @@ void GameState::RemoveProjectile(const uint8_t projectile_id) {
   std::cout << "[GameState][INFO] Removed projectile with ID " << static_cast<int>(projectile_id) << "\n";
 }
 
+void GameState::AddEnemy(const uint8_t enemy_id, const float x,
+                                        const float y) {
+  if (enemy_entities_.contains(enemy_id)) {
+    std::cout << "[GameState][WARN] Enemy ID " << static_cast<int>(enemy_id)
+              << " already exists. Skipping addition.\n";
+    return;
+  }
+
+  const auto entity = registry_.spawn_entity();
+
+  registry_.emplace_component<Enemy>(entity, Enemy{enemy_id});
+  registry_.emplace_component<Position>(entity, Position{x, y});
+
+  enemy_entities_[enemy_id] = entity;
+
+  std::cout << "[GameState][INFO] Added enemy " << static_cast<int>(enemy_id)
+            << " at position (" << x << ", " << y << ").\n";
+}
+
+Registry::entity_t GameState::GetEnemy(const uint8_t enemy_id) const {
+  const auto it = enemy_entities_.find(enemy_id);
+  if (it == enemy_entities_.end()) {
+    std::cout << "[GameState][WARN] Enemy ID " << static_cast<int>(enemy_id)
+              << " not found in GameState.\n";
+    return InvalidEntity;
+  }
+  return it->second;
+}
+
+void GameState::RemoveEnemy(const uint8_t enemy_id) {
+  const auto it = enemy_entities_.find(enemy_id);
+  if (it == enemy_entities_.end()) {
+    std::cerr << "[GameState][WARN] Projectile ID " << static_cast<int>(enemy_id)
+              << " not found. Skipping removal.\n";
+    return;
+  }
+
+  const auto enemy_entity = it->second;
+
+  registry_.kill_entity(enemy_entity);
+
+  enemy_entities_.erase(enemy_id);
+
+  std::cout << "[GameState][INFO] Removed projectile with ID " << static_cast<int>(enemy_id) << "\n";
+}
 
 }  // namespace client

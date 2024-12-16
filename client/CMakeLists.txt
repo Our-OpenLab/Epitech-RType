@@ -8,7 +8,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(SOURCES
         src/main.cpp
         src/core/client.cpp
-        src/core/message_dispatcher.cpp
         src/core/renderer.cpp
         src/engine/game_engine.cpp
         src/engine/game_state.cpp

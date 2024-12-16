@@ -5,10 +5,10 @@
 namespace client {
 
 void GameEngine::InitializeSystems() {
-  registry_.register_component<Player>();
-  registry_.register_component<Position>();
-  registry_.register_component<DirtyFlag>();
+  registry_.register_component<ClientPlayer>();
+  registry_.register_component<Enemy>();
   registry_.register_component<Projectile>();
+  registry_.register_component<Position>();
 
 //  registry_.add_system([](Registry& registry, const float delta_time) {
 //    movement_system(registry, delta_time);

@@ -7,13 +7,13 @@
 
 #include "server/engine/ecs_alias.hpp"
 
-constexpr float kArenaLeft = 0.0f;
-constexpr float kArenaRight = 2000.0f;
-constexpr float kArenaTop = 0.0f;
-constexpr float kArenaBottom = 2000.0f;
+constexpr float kArenaLeft = 0.0f + 40.0f;
+constexpr float kArenaRight = 2000.0f - 40.0f;
+constexpr float kArenaTop = 0.0f + 40.0f;
+constexpr float kArenaBottom = 2000.0f - 40.0f;
 
-constexpr float kDefaultMaxSpeed = 2200.0f;
-constexpr float kDefaultAcceleration = 22000.0f;
+constexpr float kDefaultMaxSpeed = 440.0f;
+constexpr float kDefaultAcceleration = 4400.0f;
 constexpr float kFriction = 0.1f;
 constexpr float kMovementThresholdSquared = 0.01f * 0.01f;
 

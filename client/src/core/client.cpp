@@ -4,9 +4,10 @@
 #include "client/core/client.hpp"
 #include "client/core/message_dispatcher.hpp"
 
-Client::Client(const std::string& host, const std::string& port)
+Client::Client(const std::string& host, const std::string& tcp_port, const uint16_t udp_port)
   : renderer_(1280, 960, "R-Type"),
-      network_client_(host, port),
+      network_client_(host, tcp_port, udp_port),
+      message_dispatcher_(std::make_unique<network::MessageDispatcher>(*this)),
       input_manager_([this](InputManager::PlayerInput&& input) {
         const network::PlayerInput network_input{
           .player_id = client_id_,
@@ -16,10 +17,10 @@ Client::Client(const std::string& host, const std::string& port)
           .timestamp = input.timestamp
         };
 
-        auto input_packet = network::PacketFactory<network::MyPacketType>::create_packet(
+        auto input_packet = network::PacketFactory<network::MyPacketType>::CreatePacket(
              network::MyPacketType::kPlayerInput, network_input);
 
-        network_client_.send(std::move(input_packet));
+        network_client_.SendUdp(std::move(input_packet));
       }, screen_manager_),
       game_state_(game_engine_.GetRegistry()) {
 //  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
@@ -106,13 +107,13 @@ void Client::Run() {
      //   std::cout << "[Client][DEBUG] Tick: " << tick_counter
      //             << ", Render time: " << render_time.count() << " ms\n";
 
+      const auto [x, y] = game_state_.GetLocalPlayerPosition();
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 is_running_ = false;
             }
-            const auto [x, y] = game_state_.GetLocalPlayerPosition();
-            input_manager_.HandleEvent(event, tick_start_time, x, y);
+            input_manager_.HandleEvent(event, tick_start_time, 0, 0);
         }
 
         const auto packet_start_time = std::chrono::steady_clock::now();
@@ -136,7 +137,9 @@ void Client::Run() {
 //        renderer_.Clear();
 //        renderer_.DrawGame(game_state_);
 //        renderer_.Present();
-      //renderer_.UpdateCamera(game_state_);
+      const auto [x1, y1] = game_state_.GetLocalPlayerPosition();
+
+      renderer_.UpdateCamera({x1, y1});
       renderer_.Clear();
       renderer_.DrawGame(game_state_);
       renderer_.Present();
@@ -216,10 +219,10 @@ void Client::SendPing(uint64_t tick_counter) {
           std::chrono::steady_clock::now().time_since_epoch())
           .count());
 
-  auto ping_packet = network::PacketFactory<network::MyPacketType>::create_packet(
+  auto ping_packet = network::PacketFactory<network::MyPacketType>::CreatePacket(
       network::MyPacketType::kPing, timestamp);
 
-  network_client_.send(std::move(ping_packet));
+  network_client_.SendTcp(std::move(ping_packet));
 
   std::cout << "[Client][INFO] Ping sent at tick: " << tick_counter
             << ", timestamp: " << timestamp << " ms\n";
@@ -232,7 +235,7 @@ void Client::ProcessPackets(const int max_packets,
     int processed = 0;
 
     while (processed < max_packets) {
-      auto packet_opt = network_client_.pop_message();
+      auto packet_opt = network_client_.PopMessage();
       if (!packet_opt) break;
 
       auto current_time = std::chrono::steady_clock::now();
@@ -241,7 +244,7 @@ void Client::ProcessPackets(const int max_packets,
 
       if (elapsed >= max_time) break;
 
-      MessageDispatcher::Dispatch(std::move(packet_opt.value()), *this);
+      message_dispatcher_->Dispatch(std::move(packet_opt.value()));
       ++processed;
     }
   }

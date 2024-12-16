@@ -4,6 +4,6 @@
 #include <ecs/registry.hpp>
 #include <shared/components.hpp>
 
-using Registry = ecs::Registry<Position, Velocity, Health, Player, Collider, Actions, DirtyFlag, Projectile, LastShotTime>;
+using Registry = ecs::Registry<Position, Velocity, Health, ServerPlayer, Actions, DirtyFlag, Projectile, LastShotTime, AIState, PatrolPath, Aggro, Flocking, Enemy, Target>;
 
 #endif // ECS_ALIAS_HPP_

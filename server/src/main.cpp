@@ -22,13 +22,13 @@ public:
 
     while (keep_running_) {
       if (stop_requested_) {
-        stop();
+        Stop();
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
   }
 
-  void stop() {
+  void Stop() {
     if (!keep_running_) return;
 
     keep_running_ = false;
@@ -44,7 +44,7 @@ private:
 
 int main()
 {
-  game::GameServer<network::MyPacketType> game_server(4242);
+  game::GameServer<network::MyPacketType> game_server(4242, 4243);
 
   ServerController controller(game_server);
 

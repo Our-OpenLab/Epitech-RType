@@ -3,14 +3,13 @@
 
 #include <iostream>
 #include <array>
-
 #include "server/core/game_server.hpp"
 
 namespace game {
 
 template <typename PacketType>
-GameServer<PacketType>::GameServer(uint16_t port)
-    : network_server_(port, game_state_, event_queue_),
+GameServer<PacketType>::GameServer(const uint16_t tcp_port, const uint16_t udp_port)
+    : network_server_(tcp_port, udp_port, game_state_, event_queue_),
       game_state_(game_engine_.GetRegistry(), network_server_) {}
 
 template <typename PacketType>
@@ -20,7 +19,7 @@ GameServer<PacketType>::~GameServer() {
 
 template <typename PacketType>
 bool GameServer<PacketType>::Start() {
-  if (!network_server_.start()) {
+  if (!network_server_.Start()) {
     std::cerr << "[GameServer] Failed to start network server.\n";
     return false;
   }
@@ -38,7 +37,7 @@ void GameServer<PacketType>::Stop() {
   if (!running_) return;
 
   running_ = false;
-  network_server_.stop();
+  network_server_.Stop();
 
   if (game_thread_.joinable()) {
     game_thread_.join();
@@ -50,25 +49,25 @@ void GameServer<PacketType>::Stop() {
 template <typename PacketType>
 void GameServer<PacketType>::Run() {
   uint64_t tick_counter = 0;
-  auto next_tick_time = std::chrono::steady_clock::now();
+  auto previous_time = std::chrono::steady_clock::now();
+  auto next_tick_time = previous_time;
 
   while (running_) {
     const auto current_time = std::chrono::steady_clock::now();
     const float delta_time =
-        std::chrono::duration<float>(current_time - next_tick_time).count();
+        std::chrono::duration<float>(current_time - previous_time).count();
 
-    event_queue_.process();
+    previous_time = current_time; // Mise à jour pour le prochain tick
+
+    event_queue_.Process();
     ProcessPackets(kMaxPacketsPerTick, kMaxPacketProcessingTime);
 
     game_engine_.Update(delta_time, game_state_);
 
-    if (tick_counter % kUpdateFrequencyTicks == 0) {
-      const uint32_t timestamp = static_cast<uint32_t>(
-          std::chrono::duration_cast<std::chrono::milliseconds>(
-              current_time.time_since_epoch())
-              .count());
-
-      SendUpdatesToClients(timestamp);
+    if (tick_counter % kFullUpdateFrequencyTicks == 0) {
+      SendFullStateUpdates();
+    } else if (tick_counter % kUpdateFrequencyTicks == 0) {
+      SendUpdatesToClients();
     }
 
     ++tick_counter;
@@ -78,11 +77,11 @@ void GameServer<PacketType>::Run() {
             next_tick_time - std::chrono::steady_clock::now();
         sleep_time > std::chrono::milliseconds(0)) {
       std::this_thread::sleep_for(sleep_time);
-    } else {
-      std::cerr << "[GameServer] Tick overrun by "
-                << -sleep_time.count() << " ms\n";
-      next_tick_time = std::chrono::steady_clock::now();
-    }
+        } else {
+          std::cerr << "[GameServer] Tick overrun by "
+                    << -sleep_time.count() << " ms\n";
+          next_tick_time = std::chrono::steady_clock::now();
+        }
   }
 }
 
@@ -93,7 +92,7 @@ void GameServer<PacketType>::ProcessPackets(
   int processed = 0;
 
   while (processed < max_packets) {
-    auto packet_opt = network_server_.pop_message();
+    auto packet_opt = network_server_.PopMessage();
     if (!packet_opt) break;
 
     const auto current_time = std::chrono::steady_clock::now();
@@ -103,152 +102,150 @@ void GameServer<PacketType>::ProcessPackets(
 
     if (elapsed >= max_time) break;
 
-    MessageDispatcher::dispatch(std::move(packet_opt.value()), game_state_);
+    try {
+      network_server_.ProcessMessage(std::move(packet_opt.value()));
+    } catch (const std::exception& e) {
+      std::cerr << "[GameServer][ERROR] Exception during message processing: " << e.what() << "\n";
+    }
+
     ++processed;
   }
 }
 
 template <typename PacketType>
-void GameServer<PacketType>::SendUpdatesToClients(const uint32_t timestamp) {
-  SendPlayerUpdates(timestamp);
-  SendProjectileUpdates(timestamp);
+void GameServer<PacketType>::SendUpdatesToClients() {
+  SendPlayerUpdates(/*force_update=*/false);
+  SendEnemyUpdates(/*force_update=*/false);
+  SendProjectileUpdates(/*force_update=*/false);
 }
 
 template <typename PacketType>
-void GameServer<PacketType>::SendPlayerUpdates(const uint32_t timestamp) {
+void GameServer<PacketType>::SendFullStateUpdates() {
+  SendPlayerUpdates(/*force_update=*/true);
+  SendEnemyUpdates(/*force_update=*/true);
+  SendProjectileUpdates(/*force_update=*/true);
+}
+
+template <typename PacketType>
+void GameServer<PacketType>::SendPlayerUpdates(const bool force_update) {
   auto& registry = game_engine_.GetRegistry();
   auto& positions = registry.template get_components<Position>();
-  auto& players = registry.template get_components<Player>();
+  auto& players = registry.template get_components<ServerPlayer>();
   auto& dirty_flags = registry.template get_components<DirtyFlag>();
 
-  std::array<network::UpdatePosition, kMaxUpdatesPerPacket> position_updates;
+  constexpr std::size_t MaxUpdates = GetMaxUpdatesPerPacket<network::UpdatePlayer>();
+  std::array<network::UpdatePlayer, MaxUpdates> updates{};
   size_t count = 0;
 
   for (size_t i = 0; i < positions.size(); ++i) {
-    if (!dirty_flags[i].has_value() || !dirty_flags[i]->is_dirty) {
+    if (!force_update && (!dirty_flags[i].has_value() || !dirty_flags[i]->is_dirty)) {
       continue;
     }
 
     if (positions[i].has_value() && players[i].has_value()) {
       const auto& [x, y] = *positions[i];
-      const auto& [id] = *players[i];
+      const auto& [id, unused1, score] = *players[i];
 
-      position_updates[count++] = network::UpdatePosition{id, x, y, timestamp};
+      updates[count++] = network::UpdatePlayer{id, x, y, score};
+
       dirty_flags[i]->is_dirty = false;
 
-      if (count >= kMaxUpdatesPerPacket) {
-        SendUpdatePacket(position_updates, count, PacketType::kUpdatePosition);
+      if (count >= MaxUpdates) {
+        SendUpdatePacket(updates, count, PacketType::kUpdatePlayers);
         count = 0;
       }
     }
   }
 
   if (count > 0) {
-    SendUpdatePacket(position_updates, count, PacketType::kUpdatePosition);
+    SendUpdatePacket(updates, count, PacketType::kUpdatePlayers);
   }
 }
 
-/*
 template <typename PacketType>
-void GameServer<PacketType>::SendProjectileUpdates(const uint32_t timestamp) {
+void GameServer<PacketType>::SendEnemyUpdates(const bool force_update) {
+  auto& registry = game_engine_.GetRegistry();
+  auto& positions = registry.template get_components<Position>();
+  auto& enemies = registry.template get_components<Enemy>();
+  auto& dirty_flags = registry.template get_components<DirtyFlag>();
+
+  constexpr std::size_t MaxUpdates = GetMaxUpdatesPerPacket<network::UpdateEnemy>();
+  std::array<network::UpdateEnemy, MaxUpdates> updates{};
+  size_t count = 0;
+
+  for (size_t i = 0; i < positions.size(); ++i) {
+    if (!force_update && (!dirty_flags[i].has_value() || !dirty_flags[i]->is_dirty)) {
+      continue;
+    }
+
+    if (positions[i].has_value() && enemies[i].has_value()) {
+      const auto& [x, y] = *positions[i];
+      const auto& [id, _] = *enemies[i];
+
+      updates[count++] = network::UpdateEnemy{id, x, y};
+
+      dirty_flags[i]->is_dirty = false;
+
+      if (count >= MaxUpdates) {
+        SendUpdatePacket(updates, count, PacketType::kUpdateEnemies);
+        count = 0;
+      }
+    }
+  }
+
+  if (count > 0) {
+    SendUpdatePacket(updates, count, PacketType::kUpdateEnemies);
+  }
+}
+
+template <typename PacketType>
+void GameServer<PacketType>::SendProjectileUpdates(const bool force_update) {
   auto& registry = game_engine_.GetRegistry();
   auto& positions = registry.template get_components<Position>();
   auto& projectiles = registry.template get_components<Projectile>();
   auto& dirty_flags = registry.template get_components<DirtyFlag>();
 
-  std::array<network::UpdateProjectile, kMaxUpdatesPerPacket> projectile_updates;
+  constexpr std::size_t MaxUpdates = GetMaxUpdatesPerPacket<network::UpdateProjectile>();
+  std::array<network::UpdateProjectile, MaxUpdates> updates{};
   size_t count = 0;
 
   for (size_t i = 0; i < positions.size(); ++i) {
-    if (!dirty_flags[i].has_value() || !dirty_flags[i]->is_dirty) {
+    if (!force_update && (!dirty_flags[i].has_value() || !dirty_flags[i]->is_dirty)) {
       continue;
     }
 
     if (positions[i].has_value() && projectiles[i].has_value()) {
       const auto& [x, y] = *positions[i];
-      const auto& [owner_id] = *projectiles[i];
+      const auto& [owner_id, projectile_id, unused1, unused2] = *projectiles[i];
 
-      projectile_updates[count++] = network::UpdateProjectile{
-        owner_id, x, y, timestamp};
+      updates[count++] = network::UpdateProjectile{
+          projectile_id, owner_id, x, y};
+
       dirty_flags[i]->is_dirty = false;
 
-      if (count >= kMaxUpdatesPerPacket) {
-        SendUpdatePacket(projectile_updates, count, PacketType::kUpdateProjectile);
+      if (count >= MaxUpdates) {
+        SendUpdatePacket(updates, count, PacketType::kUpdateProjectiles);
         count = 0;
       }
     }
   }
 
   if (count > 0) {
-    SendUpdatePacket(projectile_updates, count, PacketType::kUpdateProjectile);
-  }
-}
-*/
-
-template <typename PacketType>
-void GameServer<PacketType>::SendProjectileUpdates(const uint32_t timestamp) {
-  auto& registry = game_engine_.GetRegistry();
-  auto& positions = registry.template get_components<Position>();
-  auto& projectiles = registry.template get_components<Projectile>();
-  auto& dirty_flags = registry.template get_components<DirtyFlag>();
-
-  std::array<network::UpdateProjectile, kMaxUpdatesPerPacket> projectile_updates;
-  size_t count = 0;
-
-  for (size_t i = 0; i < positions.size(); ++i) {
-    if (!dirty_flags[i].has_value() || !dirty_flags[i]->is_dirty) {
-      continue;
-    }
-
-    if (positions[i].has_value() && projectiles[i].has_value()) {
-      const auto& [x, y] = *positions[i];
-      const auto& [owner_id, projectile_id] = *projectiles[i];
-
-      projectile_updates[count++] = network::UpdateProjectile{
-        projectile_id,  // Utilisation de l'ID du projectile
-        owner_id,
-        x,
-        y,
-        timestamp
-      };
-      dirty_flags[i]->is_dirty = false;
-
-      if (count >= kMaxUpdatesPerPacket) {
-        SendUpdatePacket(projectile_updates, count, PacketType::kUpdateProjectile);
-        count = 0;
-      }
-    }
-  }
-
-  if (count > 0) {
-    SendUpdatePacket(projectile_updates, count, PacketType::kUpdateProjectile);
+    SendUpdatePacket(updates, count, PacketType::kUpdateProjectiles);
   }
 }
 
-
-
 template <typename PacketType>
-template <typename T>
-void GameServer<PacketType>::SendUpdatePacket(
-    const std::array<T, kMaxUpdatesPerPacket>& updates,
-    const size_t count,
-    PacketType type) {
-  auto update_packet = network::PacketFactory<PacketType>::create_packet(
+template <typename T, std::size_t MaxUpdates>
+void GameServer<PacketType>::SendUpdatePacket(const std::array<T, MaxUpdates>& updates,
+                                              size_t count,
+                                              PacketType type) {
+
+  auto update_packet = network::PacketFactory<PacketType>::CreatePacket(
       type, std::span(updates.data(), count));
-  network_server_.broadcast(update_packet);
-}
 
-
-/*
-template <typename PacketType>
-void GameServer<PacketType>::SendUpdatePacket(
-    const std::array<network::UpdatePosition, kMaxUpdatesPerPacket>& updates,
-    const size_t count) {
-  auto update_packet = network::PacketFactory<PacketType>::create_packet(
-      PacketType::kUpdatePosition, std::span(updates.data(), count));
-  network_server_.broadcast(update_packet);
+  network_server_.BroadcastUdp(std::move(update_packet));
 }
-*/
 
 }  // namespace game
 

@@ -7,16 +7,22 @@
 int main(const int argc, const char* argv[]) {
   try {
     std::string host = "localhost";
-    std::string port = "4242";
+    std::string tcp_port = "4242";
+    uint16_t udp_port = 4243;
 
-    if (argc >= 3) {
+    if (argc >= 4) {
       host = argv[1];
-      port = argv[2];
+      tcp_port = argv[2];
+      udp_port = static_cast<uint16_t>(std::stoi(argv[3]));
+    } else if (argc == 3) {
+      host = argv[1];
+      tcp_port = argv[2];
+      std::cout << "[INFO] Using default UDP port: 4243\n";
     } else {
-      std::cout << "[INFO] Using default host and port: localhost:12345\n";
+      std::cout << "[INFO] Using default host, TCP port, and UDP port: localhost:4242 (UDP: 4243)\n";
     }
 
-    Client client(host, port);
+    Client client(host, tcp_port, udp_port);
 
     client.Run();
 
@@ -26,3 +32,4 @@ int main(const int argc, const char* argv[]) {
     return -1;
   }
 }
+

@@ -9,20 +9,29 @@
 #include "client/core/input_manager.hpp"
 #include "client/core/renderer.hpp"
 
+namespace network {
+class MessageDispatcher;
+}
+
 class Client {
-  friend class MessageDispatcher;
+
 
 public:
-  Client(const std::string& host, const std::string& port);
+  Client(const std::string& host, const std::string& port, uint16_t udp_port);
   ~Client();
 
   void Run();
   void Shutdown();
 
+  [[nodiscard]] uint8_t GetClientId() const { return client_id_; }
+  void SetClientId(const uint8_t id) { client_id_ = id; }
+
   client::GameState& GetGameState() { return game_state_; }
 
+  const network::NetworkClient<network::MyPacketType>& GetNetworkClient() const { return network_client_; }
+
 private:
-  static constexpr std::chrono::milliseconds kTickDuration{16};  // 16 ms (~62.5 ticks/sec)
+  static constexpr std::chrono::milliseconds kTickDuration{8};  // 16 ms (~62.5 ticks/sec)
   static constexpr uint64_t kPingFrequencyTicks{60};
   static constexpr int kMaxPacketsPerTick{50};
   static constexpr std::chrono::milliseconds kMaxPacketProcessingTime{10};
@@ -40,6 +49,7 @@ private:
   ScreenManager screen_manager_{};
   client::GameEngine game_engine_{};
   client::GameState game_state_;
+  std::unique_ptr<network::MessageDispatcher> message_dispatcher_;
 };
 
 #endif  // CLIENT_HPP_
