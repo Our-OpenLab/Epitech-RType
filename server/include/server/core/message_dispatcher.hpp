@@ -10,7 +10,7 @@
 #include <shared/player_actions.hpp>
 
 #include "custom_network_server.hpp"
-
+#include <cmath>
 namespace network {
 
 class MessageDispatcher {
