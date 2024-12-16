@@ -1,7 +1,7 @@
 #ifndef ENEMY_SPAWN_SYSTEM_HPP_
 #define ENEMY_SPAWN_SYSTEM_HPP_
 
-constexpr int kEnemiesPerPlayer = 30;
+constexpr int kEnemiesPerPlayer = 10;
 constexpr float kMapBuffer = 50.0f;
 
 constexpr float kMapHeight = 2000.0f;
