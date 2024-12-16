@@ -439,6 +439,7 @@ vec2(935188.0,780450.0)
 #define BEGIN_TEXT(x,y) print_pos = floor(vec2(x,y)); start_pos = floor(vec2(x,y));
 
 //Automatically generated from the sprite sheet here: http://uzebox.org/wiki/index.php?title=File:Font6x8.png
+/*
 #define _ col+=char(vec2(0.0,0.0),uv);
 #define _spc col+=char(vec2(0.0,0.0),uv)*text_color;
 #define _exc col+=char(vec2(276705.0,32776.0),uv)*text_color;
@@ -536,6 +537,7 @@ vec2(935188.0,780450.0)
 #define _tid col+=char(vec2(675840.0,0.0),uv)*text_color;
 #define _lar col+=char(vec2(8387.0,1147904.0),uv)*text_color;
 #define _nl print_pos = start_pos - vec2(0,CHAR_SPACING.y);
+*/
 
 // Static table for character coordinates (bit-packed sprites)
 const vec2 char_table[127] = vec2[](
@@ -688,7 +690,7 @@ vec3 char(vec2 ch, vec2 uv)
 */
 
 // Function to draw a character
-vec3 char(int ascii, vec2 uv) {
+vec3 renderChar(int ascii, vec2 uv) {
     // Default to blank sprite if the character is not printable
     if (ascii < 32 || ascii > 126) {
         return vec3(0.0); // Non-printable characters return blank
@@ -708,7 +710,7 @@ vec3 char(int ascii, vec2 uv) {
 }
 
 /*
-vec3 Text(vec2 uv)
+vec3 renderText(vec2 uv)
 {
     	vec3 col = vec3(0.0);
 
@@ -726,7 +728,7 @@ vec3 Text(vec2 uv)
 */
 
 // Function to render the text
-vec3 Text(vec2 uv) {
+vec3 renderText(vec2 uv) {
     vec3 col = vec3(0.0);
    // vec2 center_pos = vec2(res.x / 2.0 - text_length * CHAR_SPACING.x / 2.0, res.y / 2.0 - CHAR_SIZE.y / 2.0);
 
@@ -738,7 +740,7 @@ vec3 Text(vec2 uv) {
     print_pos = center_pos;
 
     for (int i = 0; i < text_length; i++) {
-        col += char(text_data[i], uv);
+        col += renderChar(text_data[i], uv);
     }
 
     return col * text_color;
@@ -748,7 +750,7 @@ void main( void )
 {
     vec2 uv = gl_FragCoord.xy / DOWN_SCALE;
 
-    vec3 col = Text(uv);
+    vec3 col = renderText(uv);
 
     FragColor = vec4(col, 1.0);
 }
