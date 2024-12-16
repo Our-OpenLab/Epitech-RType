@@ -35,7 +35,8 @@ class NetworkClient {
    * @param udp_port The UDP port for communication.
    * @throws std::runtime_error If the connection fails.
    */
-  NetworkClient(const std::string& host, const std::string& service, uint16_t udp_port) {
+  NetworkClient(const std::string& host, const std::string& service,
+                const uint16_t udp_port) {
     try {
       std::cout << "[Client][INFO] Connecting to " << host << ":" << service << "..." << std::endl;
 

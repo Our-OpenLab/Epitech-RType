@@ -36,7 +36,7 @@ class NetworkServer {
    * @param tcp_port Port for TCP connections.
    * @param udp_port Port for UDP communication.
    */
-  explicit NetworkServer(uint16_t tcp_port, uint16_t udp_port)
+  explicit NetworkServer(const uint16_t tcp_port, const uint16_t udp_port)
       : acceptor_(io_context_,
                   asio::ip::tcp::endpoint(asio::ip::tcp::v4(), tcp_port)),
         udp_connection_(std::make_shared<UdpServerConnection<PacketType>>(

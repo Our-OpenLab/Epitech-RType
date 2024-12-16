@@ -49,22 +49,20 @@ void GameServer<PacketType>::Stop() {
 template <typename PacketType>
 void GameServer<PacketType>::Run() {
   uint64_t tick_counter = 0;
-  auto next_tick_time = std::chrono::steady_clock::now();
+  auto previous_time = std::chrono::steady_clock::now();
+  auto next_tick_time = previous_time;
 
   while (running_) {
     const auto current_time = std::chrono::steady_clock::now();
     const float delta_time =
-        std::chrono::duration<float>(current_time - next_tick_time).count();
+        std::chrono::duration<float>(current_time - previous_time).count();
+
+    previous_time = current_time; // Mise à jour pour le prochain tick
 
     event_queue_.Process();
     ProcessPackets(kMaxPacketsPerTick, kMaxPacketProcessingTime);
 
     game_engine_.Update(delta_time, game_state_);
-
-    //const uint32_t timestamp = static_cast<uint32_t>(
-    //    std::chrono::duration_cast<std::chrono::milliseconds>(
-    //        current_time.time_since_epoch())
-    //        .count());
 
     if (tick_counter % kFullUpdateFrequencyTicks == 0) {
       SendFullStateUpdates();
@@ -79,11 +77,11 @@ void GameServer<PacketType>::Run() {
             next_tick_time - std::chrono::steady_clock::now();
         sleep_time > std::chrono::milliseconds(0)) {
       std::this_thread::sleep_for(sleep_time);
-    } else {
-      std::cerr << "[GameServer] Tick overrun by "
-                << -sleep_time.count() << " ms\n";
-      next_tick_time = std::chrono::steady_clock::now();
-    }
+        } else {
+          std::cerr << "[GameServer] Tick overrun by "
+                    << -sleep_time.count() << " ms\n";
+          next_tick_time = std::chrono::steady_clock::now();
+        }
   }
 }
 

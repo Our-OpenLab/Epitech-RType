@@ -29,7 +29,7 @@ class UdpConnection : public UdpConnectionInterface<PacketType> {
    * @param io_context The Asio I/O context for managing asynchronous operations.
    * @param port The local port to bind the UDP socket.
    */
-  explicit UdpConnection(asio::io_context& io_context, uint16_t port)
+  explicit UdpConnection(asio::io_context& io_context, const uint16_t port)
       : socket_(io_context, asio::ip::udp::endpoint(asio::ip::udp::v4(), port)) {}
 
   /**
