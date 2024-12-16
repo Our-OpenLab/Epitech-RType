@@ -7,7 +7,7 @@
 #include <unordered_map>
 
 // Vitesse par défaut des ennemis
-constexpr float kEnemyDefaultSpeed = 1000.0f;
+constexpr float kEnemyDefaultSpeed = 200.0f;
 
 // Distance minimale pour considérer qu'un ennemi a atteint sa cible
 constexpr float kMinTargetDistance = 1.0f;

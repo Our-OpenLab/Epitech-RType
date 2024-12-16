@@ -58,7 +58,7 @@ void GameState::AddProjectile(const uint8_t player_id, const float x, const floa
   const uint8_t projectile_id = next_projectile_id_++;
   const auto projectile_entity = registry_.spawn_entity();
 
-  constexpr float projectile_speed = 6200.0f;
+  constexpr float projectile_speed = 1240.0f;
   const float velocity_x = dir_x * projectile_speed;
   const float velocity_y = dir_y * projectile_speed;
 
