@@ -67,6 +67,10 @@ private:
     handlers_[static_cast<size_t>(MyPacketType::kRemoveEnemy)] = [this](const Packet<MyPacketType>& packet) {
       HandleRemoveEnemy(packet);
     };
+
+    handlers_[static_cast<size_t>(MyPacketType::kPong)] = [this](Packet<MyPacketType>& packet) {
+      HandlePongTcp(packet);
+    };
   }
 
   static void DefaultHandler(Packet<MyPacketType>&& packet) {
@@ -75,14 +79,15 @@ private:
   }
 
   void HandlePlayerAssign(const Packet<MyPacketType>& packet) const {
-    const auto [player_id, spawn_x, spawn_y, score] =
+    const auto [player_id, spawn_x, spawn_y, score, health] =
         PacketFactory<MyPacketType>::ExtractData<PlayerAssign>(packet);
 
     client_.SetClientId(player_id);
 
     //std::cout << "[Server][INFO] Assigned Player ID: " << static_cast<int>(player_id) << " with spawn position (" << spawn_x << ", " << spawn_y << ").\n";
 
-    const auto entity = client_.GetGameState().AddPlayer(player_id, spawn_x, spawn_y, score);
+    const auto entity = client_.GetGameState().AddPlayer(player_id, spawn_x,
+                                                         spawn_y, score, health);
 
     if (entity == client::GameState::InvalidEntity) {
       std::cerr << "[Server][ERROR] Failed to add Player ID: " << static_cast<int>(player_id)
@@ -119,22 +124,23 @@ private:
     auto& positions = registry.get_components<Position>();
     auto& client_player = registry.get_components<ClientPlayer>();
 
-    for (const auto& [player_id, new_x, new_y, score] : update_players) {
+    for (const auto& [player_id, new_x, new_y, score, health] : update_players) {
       if (const auto entity = game_state.GetPlayer(player_id);
           entity == client::GameState::InvalidEntity) {
         std::cout << "[Client][INFO] Adding new player with ID: " << static_cast<int>(player_id) << '\n';
 
-        game_state.AddPlayer(player_id, new_x, new_y, score);
+        game_state.AddPlayer(player_id, new_x, new_y, score, health);
 
         std::cout << "[Client][INFO] Added Player " << static_cast<int>(player_id)
                   << " at position (" << new_x << ", " << new_y << ")\n";
           } else if (entity < positions.size() && positions[entity].has_value() && client_player[entity].has_value()) {
             auto& [x, y] = *positions[entity];
-            auto& [_, player_score] = *client_player[entity];
+            auto& [_, player_score, player_health] = *client_player[entity];
             x = new_x;
             y = new_y;
 
             player_score = score;
+            player_health = health;
 
             std::cout << "[Client][INFO] Updated position for Player " << static_cast<int>(player_id)
                       << " to (" << new_x << ", " << new_y << ")\n";
@@ -205,7 +211,7 @@ private:
     }
   }
 
-  static void HandlePong(Packet<MyPacketType>& packet) {
+  void HandlePongTcp(Packet<MyPacketType>& packet) {
     try {
       if (packet.body.size() == sizeof(std::uint32_t)) {
         const auto timestamp = packet.Extract<std::uint32_t>();
@@ -228,12 +234,12 @@ private:
   }
 
   void HandlePlayerJoin(const Packet<MyPacketType>& packet) const {
-    auto [player_id, x, y, score] = PacketFactory<MyPacketType>::ExtractData<PlayerJoin>(packet);
+    auto [player_id, x, y, score, health] = PacketFactory<MyPacketType>::ExtractData<PlayerJoin>(packet);
 
     std::cout << "[Client][INFO] Player " << static_cast<int>(player_id)
               << " joined the game at position (" << x << ", " << y << ").\n";
 
-    client_.GetGameState().AddPlayer(player_id, x, y, score);
+    client_.GetGameState().AddPlayer(player_id, x, y, score, health);
 
     std::cout << "[Client][INFO] Player " << static_cast<int>(player_id)
               << " successfully added to local GameState.\n";

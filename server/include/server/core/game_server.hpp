@@ -64,6 +64,7 @@ class GameServer {
   static constexpr std::size_t kSafeUdpPayloadSize{512};        ///< Safe UDP payload size (bytes).
   static constexpr uint32_t kUpdateFrequencyTicks{1};           ///< Frequency of regular updates.
   static constexpr uint32_t kFullUpdateFrequencyTicks{4};       ///< Frequency of full state updates.
+  static constexpr uint32_t kConnectionCheckFrequencyTicks{100};  ///< Vérification des connexions toutes les 100 ticks (~1.6 sec à 62.5 ticks/sec).
 
   /**
    * @brief Computes the maximum number of updates per UDP packet.

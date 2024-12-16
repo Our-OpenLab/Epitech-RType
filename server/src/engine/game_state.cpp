@@ -11,7 +11,7 @@ bool GameState::AddPlayer(const uint8_t player_id, const float x, const float y)
 
   const auto entity = registry_.spawn_entity();
 
-  registry_.emplace_component<ServerPlayer>(entity, ServerPlayer{player_id, Circle{16.0f}});
+  registry_.emplace_component<ServerPlayer>(entity, ServerPlayer{player_id, Circle{30.0f}});
   registry_.emplace_component<Position>(entity, Position{x, y});
   registry_.emplace_component<Actions>(entity, Actions{0});
   registry_.emplace_component<Velocity>(entity, Velocity{});

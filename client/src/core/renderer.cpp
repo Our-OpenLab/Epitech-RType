@@ -1187,6 +1187,7 @@ void Renderer::DrawGame(const client::GameState& game_state) const {
       }
     }
     DrawScore(game_state.GetLocalPlayerScore(), {600.0f, 20.0f});
+    DrawScore(game_state.GetLocalPlayerHealth(), {600.0f, 50.0f});
 }
 
 void Renderer::Clear() const {

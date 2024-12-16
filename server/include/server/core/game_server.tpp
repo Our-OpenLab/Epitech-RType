@@ -57,12 +57,16 @@ void GameServer<PacketType>::Run() {
     const float delta_time =
         std::chrono::duration<float>(current_time - previous_time).count();
 
-    previous_time = current_time; // Mise à jour pour le prochain tick
+    previous_time = current_time;
 
     event_queue_.Process();
     ProcessPackets(kMaxPacketsPerTick, kMaxPacketProcessingTime);
 
     game_engine_.Update(delta_time, game_state_);
+
+    if (tick_counter % kConnectionCheckFrequencyTicks == 0) {
+      network_server_.CheckConnections();
+    }
 
     if (tick_counter % kFullUpdateFrequencyTicks == 0) {
       SendFullStateUpdates();
@@ -144,9 +148,9 @@ void GameServer<PacketType>::SendPlayerUpdates(const bool force_update) {
 
     if (positions[i].has_value() && players[i].has_value()) {
       const auto& [x, y] = *positions[i];
-      const auto& [id, unused1, score] = *players[i];
+      const auto& [id, unused1, score, health] = *players[i];
 
-      updates[count++] = network::UpdatePlayer{id, x, y, score};
+      updates[count++] = network::UpdatePlayer{id, x, y, score, health};
 
       dirty_flags[i]->is_dirty = false;
 

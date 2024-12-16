@@ -31,15 +31,16 @@ void CustomNetworkServer<PacketType>::OnClientAccepted(
     const std::shared_ptr<TcpServerConnection<PacketType>>& connection) {
   const uint32_t client_id = connection->GetId();
   float spawn_x = 1000, spawn_y = 1000;
+  uint8_t health = 100;
 
-  event_queue_.Push([this, connection, client_id, spawn_x, spawn_y]() {
+  event_queue_.Push([this, connection, client_id, spawn_x, spawn_y, health]() {
     if (game_state_.AddPlayer(client_id, spawn_x, spawn_y)) {
-      PlayerAssign assign_message{static_cast<uint8_t>(client_id), spawn_x, spawn_y, 0};
+      PlayerAssign assign_message{static_cast<uint8_t>(client_id), spawn_x, spawn_y, 0, health};
       auto assign_packet = PacketFactory<PacketType>::CreatePacket(
           PacketType::kPlayerAssign, assign_message);
       connection->Send(std::move(assign_packet));
 
-      game_state_.AddEnemy(300.0f, 300.0f, AIState::Pursue);
+      //game_state_.AddEnemy(300.0f, 300.0f, AIState::Pursue);
 
       //std::cout << "[Server][INFO] Player " << client_id << " successfully added and notified.\n";
     } else {
@@ -70,6 +71,19 @@ void CustomNetworkServer<PacketType>::OnClientDisconnect(
 
   std::cout << "[CustomServer][INFO] Player " << static_cast<int>(player_id)
             << " scheduled for removal and notification.\n";
+
+  auto tcp_to_udp_it = this->tcp_to_udp_map_.find(connection);
+  if (tcp_to_udp_it != this->tcp_to_udp_map_.end()) {
+    const auto& udp_endpoint = tcp_to_udp_it->second;
+
+    this->udp_to_tcp_map_.erase(udp_endpoint);
+
+    this->tcp_to_udp_map_.erase(tcp_to_udp_it);
+
+    // std::cout << "[Server][INFO] Removed UDP endpoint mapping for client ID "
+    //           << connection->GetId() << " at " << udp_endpoint.address().to_string()
+    //           << ":" << udp_endpoint.port() << std::endl;
+  }
 }
 
 template class CustomNetworkServer<MyPacketType>;

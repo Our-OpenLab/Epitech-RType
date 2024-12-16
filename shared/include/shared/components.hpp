@@ -20,11 +20,13 @@ struct ServerPlayer {
     uint8_t id;
     Shape shape;
     uint16_t score{0};
+    uint8_t health{100};
 };
 
 struct ClientPlayer {
     uint8_t id;
     uint16_t score{0};
+    uint8_t health{100};
 };
 
 struct Enemy {

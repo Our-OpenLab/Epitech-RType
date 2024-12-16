@@ -45,7 +45,6 @@ class TcpConnection : public TcpConnectionInterface<PacketType> {
   void Disconnect() override {
     try {
       if (socket_.is_open()) {
-        socket_.shutdown(asio::ip::tcp::socket::shutdown_both);
         socket_.close();
       }
     } catch (const std::exception& e) {

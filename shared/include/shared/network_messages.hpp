@@ -11,6 +11,7 @@ struct PlayerAssign {
   float spawn_x;
   float spawn_y;
   uint16_t score;
+  uint8_t health;
 };
 
 struct PlayerInput {
@@ -25,6 +26,7 @@ struct PlayerJoin {
   uint8_t player_id;
   float x, y;
   uint16_t score;
+  uint8_t health;
 };
 
 struct PlayerLeave {
@@ -44,6 +46,7 @@ struct UpdatePlayer {
   float x;
   float y;
   uint16_t score;
+  uint8_t health;
 };
 
 struct UpdateEnemy {

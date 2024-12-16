@@ -24,8 +24,7 @@ public:
         : callback_(std::move(callback)), screen_manager_(screen_manager) {}
 
     void HandleEvent(const SDL_Event& event,
-    const std::chrono::steady_clock::time_point current_time, const float player_x,
-        const float player_y) {
+    const std::chrono::steady_clock::time_point current_time) {
     static constexpr uint16_t keycode_to_action[SDLK_z + 1] = {
         ['z'] = static_cast<uint16_t>(PlayerAction::MoveUp),
         ['s'] = static_cast<uint16_t>(PlayerAction::MoveDown),
@@ -57,7 +56,7 @@ public:
         SDL_GetMouseState(&mouse_x, &mouse_y);
 
         mouse_position_ = screen_manager_.MouseToWorldCoordinates(
-            mouse_x, mouse_y, player_x, player_y);
+            mouse_x, mouse_y);
     }
 
     if (actions_changed || event.type == SDL_MOUSEMOTION) {

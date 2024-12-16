@@ -20,7 +20,7 @@ public:
   ~GameState() = default;
 
   Registry::entity_t AddPlayer(uint8_t player_id, float x, float y,
-                               uint16_t score);
+                               uint16_t score, uint8_t health);
   [[nodiscard]] Registry::entity_t GetPlayer(uint8_t player_id) const;
   void RemovePlayer(uint8_t player_id);
 
@@ -61,9 +61,22 @@ public:
 
     if (const auto& players = registry_.get_components<ClientPlayer>();
         local_player_entity_ < players.size() && players[local_player_entity_].has_value()) {
-          const auto& [id, score] = *players[local_player_entity_];
+          const auto& [id, score, _] = *players[local_player_entity_];
           return score;
         }
+    return 0;
+  }
+
+  [[nodiscard]] uint8_t GetLocalPlayerHealth() const {
+    if (local_player_entity_ == InvalidEntity) {
+      return 0;
+    }
+
+    if (const auto& players = registry_.get_components<ClientPlayer>();
+        local_player_entity_ < players.size() && players[local_player_entity_].has_value()) {
+      const auto& [id, _, health] = *players[local_player_entity_];
+      return health;
+    }
     return 0;
   }
 

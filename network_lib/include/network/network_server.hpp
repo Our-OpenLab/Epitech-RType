@@ -104,14 +104,15 @@ class NetworkServer {
    */
   template <typename T>
   void BroadcastTcp(T&& packet) {
-    for (const auto& connection : connections_) {
-      if (connection->IsConnected()) {
-        connection->Send(std::forward<T>(packet));
-      } else {
+      std::erase_if(connections_, [this, &packet](const auto& connection) {
+        if (connection->IsConnected()) {
+          connection->Send(std::forward<T>(packet));
+          return false;
+        }
         OnClientDisconnect(connection);
-      }
+        return true;
+      });
     }
-  }
 
   /**
    * @brief Broadcasts a packet to all UDP endpoints.
@@ -135,18 +136,21 @@ class NetworkServer {
    */
   template <typename T>
   void BroadcastToOthersTcp(
-      const std::shared_ptr<TcpServerConnection<PacketType>>& excluded_connection,
-      T&& packet) {
-    for (const auto& connection : connections_) {
-      if (connection != excluded_connection && connection->IsConnected()) {
-        connection->Send(std::forward<T>(packet));
-      } else if (connection == excluded_connection) {
-        continue;
-      } else {
-        OnClientDisconnect(connection);
+    const std::shared_ptr<TcpServerConnection<PacketType>>& excluded_connection,
+    T&& packet) {
+    std::erase_if(connections_, [this, &packet, &excluded_connection](const auto& connection) {
+      if (connection == excluded_connection) {
+        return false;
       }
-    }
+      if (connection->IsConnected()) {
+        connection->Send(std::forward<T>(packet));
+        return false;
+      }
+      OnClientDisconnect(connection);
+      return true;
+    });
   }
+
 
   /**
   * @brief Broadcasts a packet to all UDP endpoints except one.
@@ -175,15 +179,27 @@ class NetworkServer {
    */
   template <typename T>
   bool SendToTcp(uint32_t connection_id, T&& packet) {
-    for (const auto& connection : connections_) {
-      if (connection->GetId() == connection_id && connection->IsConnected()) {
-        connection->Send(std::forward<T>(packet));
-        return true;
-      }
+    bool sent = false;
+
+    std::erase_if(connections_, [this, &packet, connection_id, &sent](const auto& connection) {
+        if (connection->GetId() == connection_id) {
+            if (connection->IsConnected()) {
+                connection->Send(std::forward<T>(packet));
+                sent = true;
+                return false;
+            } else {
+                OnClientDisconnect(connection);
+                return true;
+            }
+        }
+        return false;
+    });
+
+    if (!sent) {
+        std::cerr << "[Server][ERROR] Failed to send packet to TCP connection ID "
+                  << connection_id << std::endl;
     }
-    std::cerr << "[Server][ERROR] Failed to send packet to TCP connection ID "
-              << connection_id << std::endl;
-    return false;
+    return sent;
   }
 
   /**
@@ -221,6 +237,29 @@ class NetworkServer {
   }
 
   /**
+   * @brief Checks all active connections and removes disconnected ones.
+   *
+   * Iterates through the list of TCP connections and verifies their status.
+   * If a connection is no longer active, it triggers the `OnClientDisconnect` callback
+   * and removes the connection from the list.
+   *
+   * This function ensures that only active connections are maintained,
+   * freeing resources associated with disconnected clients.
+   */
+  void CheckConnections() {
+    std::erase_if(connections_, [this](const auto& connection) {
+        if (!connection->IsConnected()) {
+         //   std::cout << "[Server][INFO] Removing disconnected client ID "
+         //             << connection->GetId() << std::endl;
+            OnClientDisconnect(connection);
+            return true;
+        }
+        return false;
+    });
+  }
+
+
+  /**
    * @brief Pops a received packet from the queue.
    *
    * @return An optional containing the packet if available.
@@ -248,10 +287,26 @@ class NetworkServer {
       const std::shared_ptr<TcpServerConnection<PacketType>>& connection) {}
 
   virtual void OnClientDisconnect(
-      const std::shared_ptr<TcpServerConnection<PacketType>>& connection) {
-    std::cout << "[Server][INFO] Client with ID " << connection->GetId()
-              << " disconnected." << std::endl;
+    const std::shared_ptr<TcpServerConnection<PacketType>>& connection) {
+    // std::cout << "[Server][INFO] Client with ID " << connection->GetId()
+    //         << " disconnected." << std::endl;
+
+    auto tcp_to_udp_it = tcp_to_udp_map_.find(connection);
+    if (tcp_to_udp_it != tcp_to_udp_map_.end()) {
+      const auto& udp_endpoint = tcp_to_udp_it->second;
+
+      udp_to_tcp_map_.erase(udp_endpoint);
+
+      tcp_to_udp_map_.erase(tcp_to_udp_it);
+
+      // std::cout << "[Server][INFO] Removed UDP endpoint mapping for client ID "
+      //           << connection->GetId() << " at " << udp_endpoint.address().to_string()
+      //           << ":" << udp_endpoint.port() << std::endl;
+    }
   }
+
+  std::unordered_map<asio::ip::udp::endpoint, std::shared_ptr<TcpServerConnection<PacketType>>> udp_to_tcp_map_;  ///< Map linking UDP endpoints to TCP connections.
+  std::unordered_map<std::shared_ptr<TcpServerConnection<PacketType>>, asio::ip::udp::endpoint> tcp_to_udp_map_;  ///< Map linking TCP connections to UDP endpoints.
 
  private:
   void Accept() {
@@ -290,8 +345,6 @@ class NetworkServer {
   std::shared_ptr<UdpServerConnection<PacketType>> udp_connection_;  ///< UDP connection for managing UDP communication.
   ConcurrentQueue<OwnedPacket<PacketType>> received_queue_;  ///< Queue to store received packets for processing.
   std::vector<std::shared_ptr<TcpServerConnection<PacketType>>> connections_;  ///< List of active TCP client connections.
-  std::unordered_map<asio::ip::udp::endpoint, std::shared_ptr<TcpServerConnection<PacketType>>> udp_to_tcp_map_;  ///< Map linking UDP endpoints to TCP connections.
-  std::unordered_map<std::shared_ptr<TcpServerConnection<PacketType>>, asio::ip::udp::endpoint> tcp_to_udp_map_;  ///< Map linking TCP connections to UDP endpoints.
   std::thread context_thread_;  ///< Thread running the ASIO context.
   uint32_t connection_id_counter_ = 0;  ///< Counter for assigning unique IDs to TCP connections.
 

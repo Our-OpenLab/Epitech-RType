@@ -38,7 +38,7 @@ private:
   static constexpr std::chrono::milliseconds kRenderDelay{100};
 
   void ProcessPackets(int max_packets, std::chrono::milliseconds max_time);
-  void SendPing(uint64_t tick_counter);
+  void SendPing(uint32_t timestamp) const;
 
   bool is_running_{true};
   uint8_t client_id_{0};

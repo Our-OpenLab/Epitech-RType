@@ -34,17 +34,15 @@ public:
   }
 
   std::pair<float, float> MouseToWorldCoordinates(const float mouse_x,
-                                                  const float mouse_y,
-                                                  const float player_x,
-                                                  const float player_y) {
+                                                  const float mouse_y) {
     constexpr float screen_width = 1280.0f;
     constexpr float screen_height = 960.0f;
 
     constexpr float half_screen_width = screen_width / 2.0f;
     constexpr float half_screen_height = screen_height / 2.0f;
 
-    float world_mouse_x = player_x - half_screen_width + (mouse_x / screen_width) * screen_width;
-    float world_mouse_y = player_y - half_screen_height + (mouse_y / screen_height) * screen_height;
+    float world_mouse_x = -half_screen_width + (mouse_x / screen_width) * screen_width;
+    float world_mouse_y = -half_screen_height + (mouse_y / screen_height) * screen_height;
 
     return {world_mouse_x, world_mouse_y};
   }

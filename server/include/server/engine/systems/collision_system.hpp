@@ -48,14 +48,14 @@ void handle_collisions(ecs::Zipper<ecs::SparseArray<Position>, ecs::SparseArray<
 
 
 inline void collision_system(Registry& registry, GameState& game_state) {
-    auto& projectile_positions = registry.get_components<Position>();
+    auto& positions = registry.get_components<Position>();
     auto& projectile_data = registry.get_components<Projectile>();
-    auto& enemy_positions = registry.get_components<Position>();
     auto& enemy_data = registry.get_components<Enemy>();
     auto& player_data = registry.get_components<ServerPlayer>();
 
-    ecs::Zipper projectile_zipper(projectile_positions, projectile_data);
-    ecs::Zipper enemy_zipper(enemy_positions, enemy_data);
+    ecs::Zipper projectile_zipper(positions, projectile_data);
+    ecs::Zipper enemy_zipper(positions, enemy_data);
+    ecs::Zipper player_zipper(positions, player_data);
 
     handle_collisions<Projectile, Enemy>(
         projectile_zipper,
@@ -71,6 +71,18 @@ inline void collision_system(Registry& registry, GameState& game_state) {
                 }
             }
             game_state.RemoveProjectile(projectile.projectile_id);
+        });
+
+    handle_collisions<Enemy, ServerPlayer>(
+        enemy_zipper,
+        player_zipper,
+        [&](const size_t enemy_index, const Enemy& enemy,
+            const size_t player_index, ServerPlayer& player) {
+            player.health -= 20;
+            if (player.health <= 0) {
+                game_state.RemovePlayer(player.id);
+            }
+            game_state.RemoveEnemy(enemy.id);
         });
 }
 
