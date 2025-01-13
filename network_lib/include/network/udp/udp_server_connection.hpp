@@ -61,7 +61,7 @@ class UdpServerConnection final : public UdpConnection<PacketType>,
    * @return A shared pointer to this instance.
    */
   std::shared_ptr<UdpConnection<PacketType>> ThisShared() override {
-    return std::static_pointer_cast<UdpServerConnection<PacketType>>(this->shared_from_this());
+    return std::static_pointer_cast<UdpServerConnection>(this->shared_from_this());
   }
 
  private:

@@ -1,0 +1,48 @@
+# Single step: Set up a complete environment with all necessary dependencies
+FROM ubuntu:24.04
+
+# Install essential tools, GCC 14, Python, and other system dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg2 \
+    software-properties-common \
+    build-essential \
+    libssl-dev \
+    python3 \
+    python3-pip \
+    python3-venv \
+    pkg-config \
+    gcc-14 \
+    g++-14 \
+    git \
+    curl
+
+# Install CMake 3.31
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.31.0/cmake-3.31.0.tar.gz && \
+    tar -zxvf cmake-3.31.0.tar.gz && \
+    rm cmake-3.31.0.tar.gz && \
+    cd cmake-3.31.0 && \
+    ./bootstrap && \
+    make -j$(nproc) && \
+    make install && \
+    cd / && rm -rf /cmake-3.31.0
+
+# Install a Python virtual environment and Conan
+RUN python3 -m venv /opt/conan-env && \
+    /opt/conan-env/bin/pip install --upgrade pip && \
+    /opt/conan-env/bin/pip install conan
+
+# Configure Conan with the detected profile
+RUN /opt/conan-env/bin/conan profile detect
+
+# Set environment variables
+ENV PATH="/opt/conan-env/bin:$PATH" \
+    CC=/usr/bin/gcc-14 \
+    CXX=/usr/bin/g++-14
+
+# Set root user for future installations
+USER root
+
+# Set the working directory and entry point
+WORKDIR /app
+CMD ["/bin/bash"]

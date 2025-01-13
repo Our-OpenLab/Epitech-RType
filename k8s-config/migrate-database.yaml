@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate-database
+spec:
+  template:
+    spec:
+      containers:
+        - name: migrate
+          image: bitnami/postgresql:17.2.0-debian-12-r5
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Creating database 'mydb' if it doesn't exist";
+              psql -U postgres -h my-postgres-postgresql.default.svc.cluster.local -c "CREATE DATABASE mydb;";
+              for f in /migrations/*.sql; do
+                echo "Applying migration: $f";
+                psql -U postgres -d mydb -h my-postgres-postgresql.default.svc.cluster.local -f "$f";
+              done;
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: my-postgres-postgresql
+                  key: postgres-password
+          volumeMounts:
+            - name: migrations
+              mountPath: /migrations
+      volumes:
+        - name: migrations
+          configMap:
+            name: postgres-migrations
+      restartPolicy: OnFailure

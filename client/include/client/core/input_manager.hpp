@@ -25,13 +25,16 @@ public:
 
     void HandleEvent(const SDL_Event& event,
     const std::chrono::steady_clock::time_point current_time) {
-    static constexpr uint16_t keycode_to_action[SDLK_z + 1] = {
-        ['z'] = static_cast<uint16_t>(PlayerAction::MoveUp),
-        ['s'] = static_cast<uint16_t>(PlayerAction::MoveDown),
-        ['q'] = static_cast<uint16_t>(PlayerAction::MoveLeft),
-        ['d'] = static_cast<uint16_t>(PlayerAction::MoveRight),
-        [' '] = static_cast<uint16_t>(PlayerAction::Shoot),
-    };
+
+    static constexpr auto keycode_to_action = [] {
+        std::array<uint16_t, SDLK_z + 1> temp{};
+        temp['z'] = static_cast<uint16_t>(PlayerAction::MoveUp);
+        temp['s'] = static_cast<uint16_t>(PlayerAction::MoveDown);
+        temp['q'] = static_cast<uint16_t>(PlayerAction::MoveLeft);
+        temp['d'] = static_cast<uint16_t>(PlayerAction::MoveRight);
+        temp[' '] = static_cast<uint16_t>(PlayerAction::Shoot);
+        return temp;
+    }();
 
     bool actions_changed = false;
     int mouse_x = 0, mouse_y = 0;

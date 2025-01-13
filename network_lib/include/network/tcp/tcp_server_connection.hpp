@@ -30,7 +30,7 @@ class TcpServerConnection final : public TcpConnection<PacketType>,
    */
   TcpServerConnection(asio::ip::tcp::socket socket,
                       ConcurrentQueue<OwnedPacket<PacketType>>& received_queue,
-                      uint32_t id)
+                      const uint32_t id)
       : TcpConnection<PacketType>(std::move(socket)),
         received_queue_(received_queue),
         connection_id_(id) {}
@@ -38,39 +38,45 @@ class TcpServerConnection final : public TcpConnection<PacketType>,
   /**
    * @brief Starts handling the connection.
    *
-   * Begins the asynchronous process to read incoming data from the client.
+   * This method initializes the connection by posting a task to the ASIO event loop
+   * and begins reading incoming data.
    */
   void Start() {
+    // Capture a local shared_ptr once
     auto self = this->shared_from_this();
-    asio::post(this->socket_.get_executor(), [self]() { self->ReadHeader(); });
+
+    // Post a small task to let ASIO run this on its event loop
+    asio::post(this->socket_.get_executor(),
+               [self]() {
+                 self->ReadHeader(self);
+               });
   }
 
   /**
    * @brief Gets the unique ID of the connection.
    *
-   * The connection ID is assigned by the server and can be used to identify
-   * a specific client connection.
+   * The ID is assigned by the server to uniquely identify the client connection.
    *
-   * @return The connection ID.
+   * @return The unique ID of the connection.
    */
   [[nodiscard]] uint32_t GetId() const { return connection_id_; }
 
   /**
-   * @brief Provides access to the underlying TCP socket.
+   * @brief Access the underlying TCP socket.
    *
-   * This can be used for advanced operations on the socket, such as modifying
-   * socket options.
+   * Provides access to the TCP socket for advanced configurations or diagnostics.
    *
-   * @return A reference to the TCP socket.
+   * @return A constant reference to the TCP socket.
    */
-  [[nodiscard]] const asio::ip::tcp::socket& GetSocket() const { return TcpConnection<PacketType>::socket_; }
+  [[nodiscard]] const asio::ip::tcp::socket& GetSocket() const {
+    return TcpConnection<PacketType>::socket_;
+  }
 
- protected:
+protected:
   /**
    * @brief Returns a shared pointer to the current instance.
    *
-   * Used internally to maintain the lifetime of the connection object during
-   * asynchronous operations.
+   * Used internally for safe asynchronous operations and lifecycle management.
    *
    * @return A shared pointer to this `TcpServerConnection` instance.
    */
@@ -79,71 +85,33 @@ class TcpServerConnection final : public TcpConnection<PacketType>,
   }
 
   /**
-   * @brief Asynchronously reads the packet header from the client.
+   * @brief Callback invoked when a fully received packet is ready.
    *
-   * This function initiates an asynchronous read operation to retrieve
-   * the packet header from the client.
+   * This method processes the received packet by pushing it into the shared queue
+   * for further handling by the server.
+   *
+   * @param self A shared pointer to this connection instance.
+   * @param packet The fully received packet.
    */
-  void ReadHeader() override {
-    asio::async_read(
-        this->socket_, asio::buffer(&this->incoming_packet_.header, sizeof(Header<PacketType>)),
-        [this](const std::error_code& ec, std::size_t /*length*/) {
-          if (!ec) {
-            if (this->incoming_packet_.header.size > 0) {
-              if (this->incoming_packet_.header.size > TcpConnection<PacketType>::kMaxBodySize) {
-                std::cerr << "[TCP Server] Invalid body size in header." << std::endl;
-                this->Disconnect();
-                return;
-              }
-              this->incoming_packet_.body.resize(this->incoming_packet_.header.size);
-              ReadBody();
-            } else {
-              received_queue_.Push(OwnedPacket<PacketType>(
-                  OwnedPacketTCP<PacketType>{this->shared_from_this(), this->incoming_packet_}));
-              ReadHeader();
-            }
-          } else {
-            std::cerr << "[TCP Server] Error reading header: " << ec.message() << std::endl;
-            this->Disconnect();
-          }
-        });
+  void OnPacketReceived(Packet<PacketType>&& packet) override {
+    received_queue_.Push(
+                OwnedPacket<PacketType>(OwnedPacketTCP<PacketType>{
+                    this->shared_from_this(), packet}));
   }
 
-  /**
-   * @brief Asynchronously reads the packet body from the client.
-   *
-   * This function initiates an asynchronous read operation to retrieve
-   * the body of the packet after the header has been successfully read.
-   */
-  void ReadBody() override {
-    asio::async_read(
-        this->socket_,
-        asio::buffer(this->incoming_packet_.body.data(), this->incoming_packet_.header.size),
-        [this](const std::error_code& ec, std::size_t /*length*/) {
-          if (!ec) {
-            received_queue_.Push(OwnedPacket<PacketType>(
-                OwnedPacketTCP<PacketType>{this->shared_from_this(), this->incoming_packet_}));
-            ReadHeader();
-          } else {
-            std::cerr << "[TCP Server] Error reading body: " << ec.message() << std::endl;
-            this->Disconnect();
-          }
-        });
-  }
-
- private:
+private:
   /**
    * @brief Queue to store received packets.
    *
-   * The queue is shared with the server and is used to manage
-   * incoming packets from this client.
+   * This queue is shared with the server to manage incoming packets
+   * from this client connection.
    */
   ConcurrentQueue<OwnedPacket<PacketType>>& received_queue_;
 
   /**
    * @brief The unique ID of this connection.
    *
-   * Assigned by the server to identify this client connection.
+   * Used by the server to identify and manage the connection.
    */
   uint32_t connection_id_;
 };

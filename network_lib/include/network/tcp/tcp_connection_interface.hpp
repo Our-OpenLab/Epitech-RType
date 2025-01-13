@@ -15,7 +15,7 @@ namespace network {
  */
 template <typename PacketType>
 class TcpConnectionInterface {
- public:
+public:
   /**
    * @brief Virtual destructor for TcpConnectionInterface.
    *

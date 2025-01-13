@@ -20,7 +20,9 @@ namespace network {
  * @brief Network client class for managing TCP and UDP connections.
  *
  * This class handles both TCP and UDP connections, allowing bidirectional
- * communication with a server.
+ * communication with a server. It uses an internal `asio::io_context` and
+ * a dedicated thread to run it. Received packets are stored in a concurrent
+ * queue for later retrieval via `PopMessage()`.
  *
  * @tparam PacketType The type of packet used in the connection.
  */
@@ -28,21 +30,39 @@ template <typename PacketType>
 class NetworkClient {
  public:
   /**
-   * @brief Constructs a NetworkClient and establishes connections.
+  * @brief Default constructor. No connection is established at this point.
+  *
+  * Call `Connect()` to actually connect the client.
+  */
+  NetworkClient() = default;
+
+  /**
+   * @brief Destructor for the NetworkClient.
    *
-   * @param host The server hostname or IP address.
-   * @param service The server TCP service or port.
-   * @param udp_port The UDP port for communication.
-   * @throws std::runtime_error If the connection fails.
+   * Ensures proper cleanup of resources by calling `Disconnect()`.
    */
-  NetworkClient(const std::string& host, const std::string& service,
-                const uint16_t udp_port) {
+  ~NetworkClient() {
+    Disconnect();
+  }
+
+  /**
+   * @brief Initiates the TCP and UDP connections to the server.
+   *
+   * If a connection already exists, it will be shut down first.
+   *
+   * @param host     The server hostname or IP address.
+   * @param service  The server TCP service or port (e.g., "80", "443").
+   * @param udp_port The UDP port for communication.
+   * @return true if the connection was successfully established, false otherwise.
+   */
+  bool Connect(const std::string& host, const std::string& service, const uint16_t udp_port) {
+    Disconnect();
+
     try {
       std::cout << "[Client][INFO] Connecting to " << host << ":" << service << "..." << std::endl;
 
-      // Resolve TCP connection endpoints
       asio::ip::tcp::resolver tcp_resolver(io_context_);
-      const auto tcp_endpoints = tcp_resolver.resolve(host, service);
+      auto tcp_endpoints = tcp_resolver.resolve(host, service);
 
       tcp_connection_ = std::make_shared<TcpClientConnection<PacketType>>(
           asio::ip::tcp::socket(io_context_), received_queue_);
@@ -52,22 +72,25 @@ class NetworkClient {
 
       tcp_connection_->Connect(tcp_endpoints, connection_promise);
 
-      // Start the ASIO context thread
-      context_thread_ = std::thread([this]() { io_context_.run(); });
+      context_thread_ = std::thread([this]() {
+        io_context_.run();
+      });
 
       if (!connection_future.get()) {
         std::cerr << "[Client][ERROR] Failed to connect to " << host << ":" << service << std::endl;
-        throw std::runtime_error("TCP connection failed");
+        Disconnect();
+        return false;
       }
 
       std::cout << "[Client][INFO] Successfully connected to " << host << ":" << service << std::endl;
 
-      // Resolve UDP connection endpoint
       asio::ip::udp::resolver udp_resolver(io_context_);
       const auto udp_endpoints = udp_resolver.resolve(host, std::to_string(udp_port));
 
       if (udp_endpoints.empty()) {
-        throw std::runtime_error("Failed to resolve UDP host: " + host);
+        std::cerr << "[Client][ERROR] Failed to resolve UDP host: " << host << std::endl;
+        Disconnect();
+        return false;
       }
 
       server_udp_endpoint_ = *udp_endpoints.begin();
@@ -80,21 +103,22 @@ class NetworkClient {
     } catch (const std::exception& e) {
       std::cerr << "[Client][ERROR] Exception during connection: " << e.what() << std::endl;
       Disconnect();
-      throw;
+      return false;
     }
+
+    return true;
   }
 
   /**
-   * @brief Destructor for the NetworkClient.
-   *
-   * Ensures proper cleanup of resources.
-   */
-  ~NetworkClient() { Disconnect(); }
-
-  /**
    * @brief Disconnects the client from the server.
+   *
+   * Stops the I/O context, joins the context thread, and resets the TCP/UDP connections.
    */
   void Disconnect() {
+    if (!IsTcpConnected() && !IsUdpConnected()) {
+      return;
+    }
+
     if (udp_connection_) {
       udp_connection_->Close();
     }
@@ -107,6 +131,8 @@ class NetworkClient {
 
     tcp_connection_.reset();
     udp_connection_.reset();
+
+    io_context_.reset();
 
     std::cout << "[Client][INFO] Client disconnected successfully." << std::endl;
   }
@@ -133,7 +159,7 @@ class NetworkClient {
    * @brief Sends a packet over the TCP connection.
    *
    * @tparam T The type of the packet to send.
-   * @param packet The packet to send.
+   * @param packet The packet to send (universal reference).
    */
   template <typename T>
   void SendTcp(T&& packet) const {
@@ -148,7 +174,7 @@ class NetworkClient {
    * @brief Sends a packet over the UDP connection.
    *
    * @tparam T The type of the packet to send.
-   * @param packet The packet to send.
+   * @param packet The packet to send (universal reference).
    */
   template <typename T>
   void SendUdp(T&& packet) const {
@@ -160,19 +186,22 @@ class NetworkClient {
   }
 
   /**
-   * @brief Retrieves the next received message.
+   * @brief Retrieves the next received message from the internal queue.
    *
-   * @return An optional Packet object.
+   * @return An optional Packet object if any is available, or std::nullopt otherwise.
    */
   std::optional<Packet<PacketType>> PopMessage() { return received_queue_.Pop(); }
 
   /**
    * @brief Gets the local UDP port used by the client.
    *
-   * @return The local UDP port.
+   * @return The local UDP port. Returns 0 if UDP is not connected.
    */
   [[nodiscard]] uint16_t GetLocalUdpPort() const {
-    return udp_connection_->GetLocalPort();
+    if (udp_connection_) {
+      return udp_connection_->GetLocalPort();
+    }
+    return 0;
   }
 
  private:

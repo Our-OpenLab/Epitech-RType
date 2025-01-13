@@ -90,7 +90,7 @@ class UdpConnection : public UdpConnectionInterface<PacketType> {
    */
   void Start() override {
     auto self = ThisShared();
-    asio::post(socket_.get_executor(), [self]() { self->ReceiveFrom(); });
+    asio::post(socket_.get_executor(), [self]() { self->ReceiveFrom(self); });
   }
 
  protected:
@@ -108,10 +108,10 @@ class UdpConnection : public UdpConnectionInterface<PacketType> {
    *
    * Asynchronously handles incoming data and processes it.
    */
-  void ReceiveFrom() override {
+  void ReceiveFrom(std::shared_ptr<UdpConnection> self) {
     socket_.async_receive_from(
         asio::buffer(recv_buffer_), remote_endpoint_,
-        [self = ThisShared()](const std::error_code& ec, std::size_t bytes_received) {
+        [self](const std::error_code& ec, std::size_t bytes_received) {
           if (!ec && bytes_received > 0) {
             if (bytes_received < sizeof(Header<PacketType>)) {
               std::cerr << "[UDP][ERROR] Packet size is too small." << std::endl;
@@ -126,7 +126,7 @@ class UdpConnection : public UdpConnectionInterface<PacketType> {
               }
               self->OnPacketReceived(std::move(packet));
             }
-            self->ReceiveFrom();
+            self->ReceiveFrom(self);
           } else {
             std::cerr << "[UDP][ERROR] Receive error: " << ec.message() << std::endl;
           }
@@ -151,7 +151,7 @@ class UdpConnection : public UdpConnectionInterface<PacketType> {
     auto buffer = packet.Data();
     socket_.async_send_to(
         asio::buffer(buffer), endpoint,
-        [buffer = std::move(buffer)](const std::error_code& ec, std::size_t bytes_transferred) {
+        [buffer = std::move(buffer)](const std::error_code& ec, std::size_t /*bytes_transferred*/) {
           if (ec) {
             std::cerr << "[UDP][ERROR] Failed to send packet: " << ec.message() << std::endl;
           } else {
@@ -167,9 +167,7 @@ class UdpConnection : public UdpConnectionInterface<PacketType> {
    *
    * @param packet The received packet.
    */
-  virtual void OnPacketReceived(Packet<PacketType> packet) {
-    std::cout << "[UDP][INFO] Packet received." << std::endl;
-  }
+  virtual void OnPacketReceived(Packet<PacketType> packet) = 0;
 
   static constexpr size_t kMaxPacketSize = 1472;  // 1500 (MTU) - 28 (UDP/IPv4 header size)
   static constexpr size_t kRecvBufferSize = 4096;

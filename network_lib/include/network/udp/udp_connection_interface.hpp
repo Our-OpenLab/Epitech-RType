@@ -70,14 +70,6 @@ class UdpConnectionInterface {
    * of packets.
    */
   virtual void Start() = 0;
-
-  /**
-   * @brief Receives packets from the connection.
-   *
-   * Implementations should provide the logic to handle incoming packets
-   * and ensure they are processed or queued appropriately.
-   */
-  virtual void ReceiveFrom() = 0;
 };
 
 }  // namespace network

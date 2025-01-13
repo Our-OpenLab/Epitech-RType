@@ -1,5 +1,5 @@
-#ifndef NETWORK_TCP_CONNECTION_HPP_
-#define NETWORK_TCP_CONNECTION_HPP_
+#ifndef TCP_CONNECTION_HPP_
+#define TCP_CONNECTION_HPP_
 
 #include <asio.hpp>
 #include <memory>
@@ -65,12 +65,12 @@ class TcpConnection : public TcpConnectionInterface<PacketType> {
    * @param packet The packet to send.
    */
   void Send(const Packet<PacketType>& packet) override {
-    auto self = ThisShared();
+    auto self = ThisShared(); // Keep a strong reference
     asio::post(socket_.get_executor(), [self, packet]() {
       const bool is_writing = !self->send_queue_.Empty();
       self->send_queue_.Push(packet);
       if (!is_writing) {
-        self->WritePacket();
+        self->WritePacket(self);
       }
     });
   }
@@ -81,12 +81,12 @@ class TcpConnection : public TcpConnectionInterface<PacketType> {
    * @param packet The packet to send (moved).
    */
   void Send(Packet<PacketType>&& packet) override {
-    auto self = ThisShared();
+    auto self = ThisShared(); // Keep a strong reference
     asio::post(socket_.get_executor(), [self, packet = std::move(packet)]() mutable {
       const bool is_writing = !self->send_queue_.Empty();
       self->send_queue_.Push(std::move(packet));
       if (!is_writing) {
-        self->WritePacket();
+        self->WritePacket(self);
       }
     });
   }
@@ -96,40 +96,94 @@ class TcpConnection : public TcpConnectionInterface<PacketType> {
    * @brief Returns a shared pointer to the derived class.
    *
    * Used for safe asynchronous operations.
+   *
+   * Derived classes must override this to return:
+   *    return this->shared_from_this();
    */
   virtual std::shared_ptr<TcpConnection> ThisShared() = 0;
 
   /**
-   * @brief Reads the header of an incoming packet.
-   *
-   * Implemented in derived classes.
-   */
-  virtual void ReadHeader() = 0;
+  * @brief Reads the header of an incoming packet.
+  *
+  * @param self A shared pointer to this connection.
+  */
+  void ReadHeader(std::shared_ptr<TcpConnection> self) {
+    asio::async_read(
+        self->socket_,
+        asio::buffer(&self->incoming_packet_.header, sizeof(Header<PacketType>)),
+        [self](const std::error_code& ec, std::size_t) {
+          if (!ec) {
+            if (self->incoming_packet_.header.size > 0) {
+              if (self->incoming_packet_.header.size > TcpConnection<PacketType>::kMaxBodySize) {
+                std::cerr << "[TCP][ERROR] Invalid body size in header." << std::endl;
+                self->Disconnect();
+                return;
+              }
+              self->incoming_packet_.body.resize(self->incoming_packet_.header.size);
+              self->ReadBody(self);
+            } else {
+              self->OnPacketReceived(std::move(self->incoming_packet_));
+              self->ReadHeader(self);
+            }
+          } else {
+            std::cerr << "[TCP][ERROR] Error reading header: " << ec.message() << std::endl;
+            self->Disconnect();
+          }
+        });
+  }
 
   /**
-   * @brief Reads the body of an incoming packet.
+  * @brief Reads the body of an incoming packet.
+  *
+  * @param self A shared pointer to this connection.
+  */
+  void ReadBody(std::shared_ptr<TcpConnection> self) {
+    asio::async_read(
+        self->socket_,
+        asio::buffer(self->incoming_packet_.body.data(), self->incoming_packet_.header.size),
+        [self](const std::error_code& ec, std::size_t) {
+          if (!ec) {
+            self->OnPacketReceived(std::move(self->incoming_packet_));
+            self->ReadHeader(self);
+          } else {
+            std::cerr << "[TCP][ERROR] Error reading body: " << ec.message() << std::endl;
+            self->Disconnect();
+          }
+        });
+  }
+
+  /**
+   * @brief Callback when a packet is received.
    *
-   * Implemented in derived classes.
+   * Derived classes must override this method to handle received packets.
+   *
+   * @param packet The received packet.
    */
-  virtual void ReadBody() = 0;
+  virtual void OnPacketReceived(Packet<PacketType>&& packet) = 0;
 
   /**
    * @brief Writes a packet from the send queue to the socket.
+   *
+   * @param self A shared pointer to this connection (ensures lifetime).
    */
-  void WritePacket() {
-    if (Packet<PacketType> current_packet;
-        send_queue_.TryPop(current_packet)) {
+  void WritePacket(std::shared_ptr<TcpConnection> self) {
+    Packet<PacketType> current_packet;
+    if (self->send_queue_.TryPop(current_packet)) {
       auto buffer = current_packet.Data();
+
+      // Capture 'self' to keep the object alive during async_write
       asio::async_write(
-          socket_, asio::buffer(buffer),
-          [this, buffer = std::move(buffer)](const std::error_code& ec, std::size_t /*length*/) {
+          self->socket_,
+          asio::buffer(buffer),
+          [self, buffer = std::move(buffer)](const std::error_code& ec, std::size_t /*length*/) {
             if (!ec) {
-              if (!send_queue_.Empty()) {
-                WritePacket();
+              // If there's more data to send, write the next packet
+              if (!self->send_queue_.Empty()) {
+                self->WritePacket(self);
               }
             } else {
               std::cerr << "[TCP][ERROR] Error writing packet: " << ec.message() << std::endl;
-              Disconnect();
+              self->Disconnect();
             }
           });
     }
@@ -144,4 +198,4 @@ class TcpConnection : public TcpConnectionInterface<PacketType> {
 
 }  // namespace network
 
-#endif  // NETWORK_TCP_CONNECTION_HPP_
+#endif  // TCP_CONNECTION_HPP_

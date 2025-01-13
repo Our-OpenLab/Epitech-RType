@@ -1,0 +1,16 @@
+# https://kubernetes.io/docs/concepts/workloads/pods/
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: server-pod
+  namespace: default
+spec:
+  serviceAccountName: pod-creator-sa
+  containers:
+    - name: server
+      image: guillaumemichel1026/rtype-dev:latest
+      command: [ "sleep" ]
+      args: [ "infinity" ]
+      ports:
+        - containerPort: 8080

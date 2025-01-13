@@ -52,8 +52,7 @@ class TcpClientConnection final : public TcpConnection<PacketType>,
         [self, &connection_result](const std::error_code& ec, const asio::ip::tcp::endpoint&) {
           if (!ec) {
             connection_result.set_value(true);
-            // std::cout << "[TCP Client] Successfully connected to server." << std::endl;
-            self->ReadHeader();
+            self->ReadHeader(self);
           } else {
             connection_result.set_value(false);
             std::cerr << "[TCP Client] Connection error: " << ec.message() << std::endl;
@@ -76,54 +75,15 @@ class TcpClientConnection final : public TcpConnection<PacketType>,
   }
 
   /**
-   * @brief Asynchronously reads the packet header from the server.
+   * @brief Callback invoked when a fully received packet is ready.
    *
-   * This method initiates an asynchronous read operation to retrieve the packet header.
-   * If the header indicates a valid body size, it proceeds to read the body.
-   */
-  void ReadHeader() override {
-    asio::async_read(
-        this->socket_, asio::buffer(&this->incoming_packet_.header, sizeof(Header<PacketType>)),
-        [this](const std::error_code& ec, std::size_t) {
-          if (!ec) {
-            if (this->incoming_packet_.header.size > 0) {
-              if (this->incoming_packet_.header.size > TcpConnection<PacketType>::kMaxBodySize) {
-                std::cerr << "[TCP Client] Invalid body size in header." << std::endl;
-                this->Disconnect();
-                return;
-              }
-              this->incoming_packet_.body.resize(this->incoming_packet_.header.size);
-              ReadBody();
-            } else {
-              received_queue_.Push(this->incoming_packet_);
-              ReadHeader();
-            }
-          } else {
-            std::cerr << "[TCP Client] Error reading header: " << ec.message() << std::endl;
-            this->Disconnect();
-          }
-        });
-  }
-
-  /**
-   * @brief Asynchronously reads the packet body from the server.
+   * Pushes the packet into the `received_queue_` for further processing.
    *
-   * This method is called after a valid header is read. It retrieves the packet body
-   * and pushes the fully received packet to the received queue.
+   * @param self A shared pointer to this connection instance.
+   * @param packet The fully received packet.
    */
-  void ReadBody() override {
-    asio::async_read(
-        this->socket_,
-        asio::buffer(this->incoming_packet_.body.data(), this->incoming_packet_.header.size),
-        [this](const std::error_code& ec, std::size_t) {
-          if (!ec) {
-            received_queue_.Push(this->incoming_packet_);
-            ReadHeader();
-          } else {
-            std::cerr << "[TCP Client] Error reading body: " << ec.message() << std::endl;
-            this->Disconnect();
-          }
-        });
+  void OnPacketReceived(Packet<PacketType>&& packet) override {
+    received_queue_.Push(std::move(packet));
   }
 
  private:

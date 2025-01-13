@@ -11,7 +11,7 @@ set(HEADERS
         include/network/tcp/tcp_client_connection.hpp
         include/network/tcp/tcp_connection.hpp
         include/network/tcp/tcp_connection_interface.hpp
-        include/network/tcp/tcp_server_connection.hpp`
+        include/network/tcp/tcp_server_connection.hpp
 
         include/network/udp/udp_client_connection.hpp
         include/network/udp/udp_connection.hpp

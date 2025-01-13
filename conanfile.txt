@@ -1,10 +1,21 @@
 [requires]
-asio/1.30.2
-sdl/2.30.9
+asio/1.32.0
+sdl/2.28.3
 
 opengl/system
 glew/2.2.0
 glm/cci.20230113
+
+libcurl/8.10.1
+nlohmann_json/3.11.3
+
+concurrentqueue/1.0.4
+
+libsodium/cci.20220430
+
+libpqxx/7.10.0
+
+sdl_ttf/2.22.0
 
 [generators]
 CMakeDeps
