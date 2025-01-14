@@ -7,14 +7,12 @@ MessageService::MessageService(const std::shared_ptr<MessageRepositoryInterface>
 
 std::optional<Message> MessageService::SaveMessage(
     const int sender_id,
-    const std::optional<int> recipient_id,
-    const std::optional<int> channel_id,
+    const int recipient_id,
     const std::string& content) const {
-  return message_repository_->CreateMessage(sender_id, recipient_id, channel_id, content);
+  return message_repository_->CreateMessage(sender_id, recipient_id, content);
 }
 
-std::vector<Message> MessageService::GetMessages(
-    const std::optional<int> recipient_id,
-    const std::optional<int> channel_id) const {
-  return message_repository_->GetMessages(recipient_id, channel_id);
+std::vector<Message> MessageService::GetMessages(const int user1_id,
+                                                 const int user2_id) const {
+  return message_repository_->GetMessages(user1_id, user2_id);
 }

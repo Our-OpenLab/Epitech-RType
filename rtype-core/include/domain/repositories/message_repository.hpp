@@ -18,14 +18,13 @@ public:
       : message_dao_(message_dao) {}
 
   std::optional<Message> CreateMessage(
-      int sender_id,
-      std::optional<int> recipient_id,
-      std::optional<int> channel_id,
-      const std::string& content) override;
+        int sender_id,
+        int recipient_id,
+        const std::string& content) override;
 
   std::vector<Message> GetMessages(
-      std::optional<int> recipient_id,
-      std::optional<int> channel_id) override;
+        int user1_id,
+        int user2_id) override;
 
 private:
   std::shared_ptr<MessageDAO> message_dao_; ///< DAO for interacting with the database.

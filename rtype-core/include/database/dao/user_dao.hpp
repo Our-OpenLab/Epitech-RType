@@ -6,6 +6,7 @@
 #include <pqxx/pqxx>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "database/database.hpp"
 #include "domain/entities/user.hpp"
@@ -41,6 +42,16 @@ public:
    * @return std::optional<User> The user, if found.
    */
   [[nodiscard]] std::optional<User> GetUserByUsername(const std::string& username) const;
+
+  /**
+   * @brief Retrieves a paginated list of users from the database.
+   *
+   * @param offset The starting index for pagination.
+   * @param limit The maximum number of users to retrieve.
+   * @return A vector of User objects.
+   */
+  [[nodiscard]] std::vector<User> GetUsers(std::uint32_t offset, std::uint32_t limit) const;
+
 
 private:
   std::shared_ptr<Database> database_;

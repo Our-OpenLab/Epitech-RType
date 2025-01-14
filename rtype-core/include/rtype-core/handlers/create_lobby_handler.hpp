@@ -34,7 +34,7 @@ void HandleCreateLobby(const std::shared_ptr<void>& raw_event,
 
     const int creator_id = connection->GetId();
 
-    if (!game_state.IsPlayerActive(creator_id)) {
+    if (!game_state.IsPlayerActiveByConnectionId(creator_id)) {
         std::cerr << "[CreateLobbyHandler][ERROR] Creator is not connected: ID "
                   << creator_id << std::endl;
         auto error_response = network::CreateCreateLobbyResponsePacket<PacketType>(

@@ -11,8 +11,7 @@
 struct Message {
   std::uint64_t id;                      ///< Unique ID of the message.
   int sender_id;                         ///< ID of the sender.
-  std::optional<int> recipient_id;       ///< ID of the recipient (if private message).
-  std::optional<int> channel_id;         ///< ID of the channel (if group message).
+  int recipient_id;                      ///< ID of the recipient
   std::string content;                   ///< Message content.
   std::uint64_t sent_at;                 ///< Timestamp of when the message was sent.
 
@@ -27,8 +26,7 @@ struct Message {
     os << "Message {"
        << "id: " << message.id << ", "
        << "sender_id: " << message.sender_id << ", "
-       << "recipient_id: " << (message.recipient_id ? std::to_string(*message.recipient_id) : "null") << ", "
-       << "channel_id: " << (message.channel_id ? std::to_string(*message.channel_id) : "null") << ", "
+       << "recipient_id: " << message.recipient_id << ", "
        << "content: \"" << message.content << "\", "
        << "sent_at: " << message.sent_at
        << "}";

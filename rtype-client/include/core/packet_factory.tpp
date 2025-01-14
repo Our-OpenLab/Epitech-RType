@@ -129,6 +129,17 @@ std::optional<Packet<PacketType>> CreateGetUserListPacket(const std::uint32_t of
   );
 }
 
+template <typename PacketType>
+std::optional<Packet<PacketType>> CreatePrivateChatHistoryPacket(const int user_id) {
+  packets::PrivateChatHistoryPacket buffer {};
+  buffer.user_id = user_id;
+
+  return PacketFactory<PacketType>::CreatePacket(
+      PacketType::kPrivateChatHistory,
+      std::span(reinterpret_cast<uint8_t*>(&buffer), sizeof(buffer))
+  );
+}
+
 }  // namespace network
 
 #endif  // NETWORK_PACKET_FACTORY_TPP_

@@ -21,6 +21,7 @@ public:
   bool CreateUser(const std::string& username, const std::string& password_hash) override;
   std::optional<User> GetUserById(int id) override;
   std::optional<User> GetUserByUsername(const std::string& username) override;
+  [[nodiscard]] std::vector<User> GetUsers(std::uint32_t offset, std::uint32_t limit) const override;
 
 private:
   std::shared_ptr<UserDAO> user_dao_;  ///< Data Access Object for user database operations.

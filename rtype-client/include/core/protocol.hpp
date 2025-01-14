@@ -204,6 +204,13 @@ struct PlayerReadyPacket {
 };
 
 /**
+ * @brief Packet to notify server about player's readiness.
+ */
+struct PlayerReadyPacketResponse {
+  int status_code;  ///< Status code (e.g., 200 for success, 400 for failure).
+};
+
+/**
  * @brief Structure used to request a paginated list of users.
  *
  * This packet is sent by the client to request a specific range of users.
@@ -227,6 +234,32 @@ struct GetUserListResponsePacket {
     char username[32];        ///< Username (max. 32 characters).
     bool is_online;           ///< Indicates if the user is currently online.
   } users[];                  ///< Array of users.
+};
+
+/**
+ * @brief Structure used to request the full history of private chat messages.
+ *
+ * This packet is sent by the client to request the chat history with a specific user.
+ */
+struct PrivateChatHistoryPacket {
+  int user_id;  ///< ID of the user whose chat history is being requested.
+};
+
+/**
+ * @brief Packet to receive the full history of private chat messages.
+ */
+struct PrivateChatHistoryResponsePacket {
+  int status_code;  ///< Status code (e.g., 200 for success, 404 for not found).
+
+  /**
+   * @brief Structure representing a single message in the chat history.
+   */
+  struct MessageInfo {
+    int sender_id;              ///< ID of the sender.
+    char message[256];          ///< Message content (max. 255 characters).
+    std::uint64_t message_id;   ///< Unique ID of the message.
+    std::uint64_t timestamp;    ///< Unix timestamp (in milliseconds) of the message.
+  } messages[];                 ///< Array of messages in the chat history.
 };
 
 }  // namespace network::packets

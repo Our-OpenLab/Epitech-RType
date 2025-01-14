@@ -4,6 +4,7 @@
 #include <string>
 #include <optional>
 #include "domain/entities/user.hpp"
+#include <vector>
 
 /**
  * @brief Interface for user repository.
@@ -35,6 +36,16 @@ public:
    * @return std::optional<User> The user, if found.
    */
   virtual std::optional<User> GetUserByUsername(const std::string& username) = 0;
+
+  /**
+   * @brief Retrieves a paginated list of users from the database.
+   *
+   * @param offset The starting index for pagination.
+   * @param limit The maximum number of users to retrieve.
+   * @return A vector of User objects.
+   */
+  [[nodiscard]] virtual std::vector<User> GetUsers(std::uint32_t offset, std::uint32_t limit) const = 0;
+
 };
 
 #endif  // USER_REPOSITORY_INTERFACE_HPP_

@@ -13,12 +13,41 @@ POD_NAME="server-pod"
 APP_PATH_IN_POD="/app"
 
 # Step 1: Copy local code to the Pod
-echo -e "${YELLOW}Copying local code to the pod...${RESET}"
-if ! kubectl cp "$LOCAL_CODE_DIR" "$POD_NAME:$APP_PATH_IN_POD"; then
-    echo -e "${RED}Failed to copy code to the pod.${RESET}"
+#echo -e "${YELLOW}Copying local code to the pod...${RESET}"
+#if ! kubectl cp "$LOCAL_CODE_DIR" "$POD_NAME:$APP_PATH_IN_POD"; then
+#    echo -e "${RED}Failed to copy code to the pod.${RESET}"
+#    exit 1
+#fi
+#echo -e "${GREEN}Code copied successfully to ${POD_NAME}:${APP_PATH_IN_POD}.${RESET}"
+
+
+echo -e "${YELLOW}Copying local code to the pod, excluding CMakeUserPresets.json...${RESET}"
+
+# Create a temporary tar archive excluding the unwanted file
+TEMP_ARCHIVE="/tmp/code_to_copy.tar"
+tar --exclude="CMakeUserPresets.json" -cf "$TEMP_ARCHIVE" -C "$LOCAL_CODE_DIR" .
+
+if ! kubectl cp "$TEMP_ARCHIVE" "$POD_NAME:/tmp/code_to_copy.tar"; then
+    echo -e "${RED}Failed to copy code archive to the pod.${RESET}"
+    rm -f "$TEMP_ARCHIVE"
     exit 1
 fi
-echo -e "${GREEN}Code copied successfully to ${POD_NAME}:${APP_PATH_IN_POD}.${RESET}"
+
+# Extract the archive inside the pod
+if ! kubectl exec "$POD_NAME" -- tar -xf /tmp/code_to_copy.tar -C "$APP_PATH_IN_POD"; then
+    echo -e "${RED}Failed to extract code inside the pod.${RESET}"
+    kubectl exec "$POD_NAME" -- rm -f /tmp/code_to_copy.tar
+    rm -f "$TEMP_ARCHIVE"
+    exit 1
+fi
+
+# Clean up temporary files
+kubectl exec "$POD_NAME" -- rm -f /tmp/code_to_copy.tar
+rm -f "$TEMP_ARCHIVE"
+
+echo -e "${GREEN}Code copied successfully to ${POD_NAME}:${APP_PATH_IN_POD}, excluding CMakeUserPresets.json.${RESET}"
+
+
 
 # Step 2: Install dependencies with Conan inside the Pod
 echo -e "${YELLOW}Installing dependencies with Conan in the pod...${RESET}"

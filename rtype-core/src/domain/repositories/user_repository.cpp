@@ -18,3 +18,8 @@ std::optional<User> UserRepository::GetUserById(const int id) {
 std::optional<User> UserRepository::GetUserByUsername(const std::string& username) {
   return user_dao_->GetUserByUsername(username);
 }
+
+std::vector<User> UserRepository::GetUsers(const std::uint32_t offset,
+                                           const std::uint32_t limit) const {
+  return user_dao_->GetUsers(offset, limit);
+}

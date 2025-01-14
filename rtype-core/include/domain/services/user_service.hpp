@@ -46,6 +46,15 @@ public:
    */
   [[nodiscard]] std::optional<int> AuthenticateUser(const std::string& username, const std::string& password) const;
 
+  /**
+   * @brief Retrieves a paginated list of users.
+   *
+   * @param offset The starting index for pagination.
+   * @param limit The maximum number of users to retrieve.
+   * @return A vector of User objects.
+   */
+  [[nodiscard]] std::vector<User> GetUsers(std::uint32_t offset, std::uint32_t limit) const;
+
 private:
   std::shared_ptr<UserRepositoryInterface> user_repository_; ///< Repository for user data access.
 };

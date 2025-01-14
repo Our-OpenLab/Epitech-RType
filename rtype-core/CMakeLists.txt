@@ -80,6 +80,8 @@ set(HEADERS
         include/rtype-core/handlers/private_message_handler.hpp
         include/rtype-core/handlers/create_lobby_handler.hpp
         include/rtype-core/handlers/player_ready_handler.hpp
+        include/rtype-core/handlers/get_user_list_handler.hpp
+        include/rtype-core/handlers/private_chat_history_handler.hpp
 )
 
 # Define the executable

@@ -8,7 +8,7 @@ namespace rtype {
 
 MainMenuScene::MainMenuScene()
     : renderer_(ServiceLocator::Get<Renderer>()),
-      scene_manager_(ServiceLocator::Get<SceneManager>()) {
+      scene_manager_(ServiceLocator::Get<SceneManager>()){
   if (ServiceLocator::Has<ChatOverlay>()) {
     chat_overlay_ = ServiceLocator::Get<std::shared_ptr<ChatOverlay>>();
   } else {
@@ -21,10 +21,12 @@ MainMenuScene::MainMenuScene()
 
 void MainMenuScene::Enter() {
   std::cout << "[MainMenuScene] Enter()" << std::endl;
+  SDL_StartTextInput();
 }
 
 void MainMenuScene::Exit() {
   std::cout << "[MainMenuScene] Exit()" << std::endl;
+  SDL_StopTextInput();
 }
 
 void MainMenuScene::Update(float /*delta_time*/) {

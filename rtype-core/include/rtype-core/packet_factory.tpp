@@ -121,6 +121,50 @@ Packet<PacketType> CreatePlayerReadyPacketResponse(const int status_code) {
     );
 }
 
+template <typename PacketType>
+Packet<PacketType> CreateGetUserListResponsePacket(
+    int status_code,
+    const std::vector<packets::GetUserListResponsePacket::UserInfo>& users) {
+
+    Packet<PacketType> packet;
+    packet.header.type = PacketType::kGetUserListResponse;
+
+    packet.Push(status_code);
+
+    if (!users.empty()) {
+        const size_t user_data_size = users.size() * sizeof(packets::GetUserListResponsePacket::UserInfo);
+        size_t current_size = packet.body.size();
+        packet.body.resize(current_size + user_data_size);
+        std::memcpy(packet.body.data() + current_size, users.data(), user_data_size);
+        packet.header.size += user_data_size;
+    }
+
+    return packet;
+}
+
+template <typename PacketType>
+Packet<PacketType> CreatePrivateChatHistoryResponsePacket(
+    int status_code,
+    const std::vector<packets::PrivateChatHistoryResponsePacket::MessageInfo>& messages) {
+
+    Packet<PacketType> packet;
+    packet.header.type = PacketType::kPrivateChatHistoryResponse;
+
+    // Ajouter le code de statut
+    packet.Push(status_code);
+
+    // Ajouter les messages, si disponibles
+    if (!messages.empty()) {
+        const size_t message_data_size = messages.size() * sizeof(packets::PrivateChatHistoryResponsePacket::MessageInfo);
+        size_t current_size = packet.body.size();
+        packet.body.resize(current_size + message_data_size);
+        std::memcpy(packet.body.data() + current_size, messages.data(), message_data_size);
+        packet.header.size += message_data_size;
+    }
+
+    return packet;
+}
+
 }  // namespace network
 
 #endif  // NETWORK_PACKET_FACTORY_TPP_

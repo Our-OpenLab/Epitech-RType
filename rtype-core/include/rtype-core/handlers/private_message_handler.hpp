@@ -24,6 +24,7 @@ void HandlePrivateMessage(const std::shared_ptr<void>& raw_event,
     const auto& packet = event->first;
     const auto& connection = event->second;
 
+    // Vérifier la taille du paquet
     if (packet.body.size() != sizeof(network::packets::PrivateMessagePacket)) {
         std::cerr << "[PrivateMessageHandler][ERROR] Invalid PrivateMessagePacket size." << std::endl;
         auto error_response =
@@ -33,10 +34,13 @@ void HandlePrivateMessage(const std::shared_ptr<void>& raw_event,
         return;
     }
 
-    const int sender_id = connection->GetId();
-    if (!game_state.IsPlayerActive(sender_id)) {
-        std::cerr << "[PrivateMessageHandler][ERROR] Sender is not connected: ID "
-                  << sender_id << std::endl;
+    // Récupérer l'ID utilisateur depuis l'ID de connexion
+    const int connection_id = connection->GetId();
+    const auto sender_db_id_opt = game_state.GetDbIdByConnectionId(connection_id);
+
+    if (!sender_db_id_opt.has_value()) {
+        std::cerr << "[PrivateMessageHandler][ERROR] Sender is not connected: Connection ID "
+                  << connection_id << std::endl;
         auto error_response =
             network::CreatePrivateMessageResponsePacket<PacketType>(
                 401);  // Code 401: Unauthorized
@@ -44,15 +48,18 @@ void HandlePrivateMessage(const std::shared_ptr<void>& raw_event,
         return;
     }
 
+    const int sender_db_id = sender_db_id_opt.value();
+
+    // Extraire les données du message
     const auto* message_data =
-        reinterpret_cast<const network::packets::PrivateMessagePacket*>(
-            packet.body.data());
+        reinterpret_cast<const network::packets::PrivateMessagePacket*>(packet.body.data());
     const std::uint32_t recipient_id = message_data->recipient_id;
     const std::string message_content(message_data->message);
 
+    // Vérifier que le service de message est disponible
     if (const auto message_service = service_container.GetMessageService()) {
         const auto saved_message = message_service->SaveMessage(
-            sender_id, recipient_id, std::nullopt, message_content);
+            sender_db_id, recipient_id, message_content);
 
         if (!saved_message.has_value()) {
             std::cerr << "[PrivateMessageHandler][ERROR] Failed to save message to database." << std::endl;
@@ -63,17 +70,19 @@ void HandlePrivateMessage(const std::shared_ptr<void>& raw_event,
             return;
         }
 
+        // Création du paquet enrichi avec les métadonnées du message
         const auto& timestamp = saved_message->sent_at;
-
         auto enriched_packet = network::CreatePrivateMessagePacket<PacketType>(
-            sender_id, recipient_id, message_content, saved_message->id,
+            sender_db_id, recipient_id, message_content, saved_message->id,
             timestamp);
 
+        // Envoyer la confirmation au sender
         connection->Send(enriched_packet);
 
-        if (sender_id != static_cast<int>(recipient_id)) {
+        // Envoyer au destinataire si connecté
+        if (sender_db_id != static_cast<int>(recipient_id)) {
             if (const auto recipient_connection =
-                    game_state.GetPlayerConnection(recipient_id)) {
+                    game_state.GetPlayerConnectionByDbId(recipient_id)) {
                 recipient_connection->Send(std::move(enriched_packet));
             } else {
                 std::cout << "[PrivateMessageHandler] Recipient " << recipient_id
@@ -89,6 +98,6 @@ void HandlePrivateMessage(const std::shared_ptr<void>& raw_event,
     }
 }
 
-}
+}  // namespace rtype
 
 #endif  // PRIVATE_MESSAGE_HANDLER_HPP_

@@ -42,20 +42,25 @@ template <typename PacketType>
 void MessageDispatcher<PacketType>::InitializeHandlers() {
   handlers_.fill(nullptr);
 
-  // Example: Registering a handler for LoginResponse packets
-  RegisterHandler(PacketType::kUserLoginResponse, [this](Packet<PacketType>&& packet) {
-    event_queue_.Publish(
-        rtype::EventType::LoginResponse,
-        std::move(packet)  // Move the packet to the EventQueue
-    );
-  });
+  handlers_[static_cast<size_t>(PacketType::kUserLoginResponse)] =
+    [this](Packet<PacketType>&& packet) {
+      event_queue_.Publish(rtype::EventType::LoginResponse, std::move(packet));
+  };
 
-  RegisterHandler(PacketType::kUserRegisterResponse, [this](Packet<PacketType>&& packet) {
-    event_queue_.Publish(
-        rtype::EventType::RegisterResponse,
-        std::move(packet)  // Move the packet to the EventQueue
-    );
-  });
+  handlers_[static_cast<size_t>(PacketType::kUserRegisterResponse)] =
+    [this](Packet<PacketType>&& packet) {
+      event_queue_.Publish(rtype::EventType::RegisterResponse, std::move(packet));
+  };
+
+  handlers_[static_cast<size_t>(PacketType::kGetUserListResponse)] =
+    [this](Packet<PacketType>&& packet) {
+      event_queue_.Publish(rtype::EventType::GetUserListResponse, std::move(packet));
+  };
+
+  handlers_[static_cast<size_t>(PacketType::kPrivateChatHistoryResponse)] =
+    [this](Packet<PacketType>&& packet) {
+      event_queue_.Publish(rtype::EventType::PrivateChatHistoryResponse, std::move(packet));
+  };
 }
 
 }  // namespace network

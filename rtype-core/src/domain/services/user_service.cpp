@@ -46,3 +46,6 @@ std::optional<int> UserService::AuthenticateUser(const std::string& username, co
   return user->id;
 }
 
+std::vector<User> UserService::GetUsers(std::uint32_t offset, std::uint32_t limit) const {
+  return user_repository_->GetUsers(offset, limit);
+}

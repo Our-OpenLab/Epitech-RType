@@ -39,6 +39,16 @@ Packet<PacketType> CreateChannelMessageResponsePacket(int status_code);
 template <typename PacketType>
 Packet<PacketType> CreatePlayerReadyPacketResponse(int status_code);
 
+template <typename PacketType>
+Packet<PacketType> CreateGetUserListResponsePacket(
+    int status_code,
+    const std::vector<packets::GetUserListResponsePacket::UserInfo>& users);
+
+template <typename PacketType>
+Packet<PacketType> CreatePrivateChatHistoryResponsePacket(
+    int status_code,
+    const std::vector<packets::PrivateChatHistoryResponsePacket::MessageInfo>& messages);
+
 }  // namespace network
 
 #include "packet_factory.tpp"

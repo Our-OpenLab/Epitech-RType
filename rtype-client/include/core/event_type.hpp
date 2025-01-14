@@ -35,6 +35,8 @@ enum class EventType : size_t {
   GetUserListRequest,   // Request to fetch the list of users
   GetUserListResponse,  // Response containing the list of users
 
+  PrivateChatHistoryResponse,
+
   // Must always be the last entry
   MaxTypes
 };

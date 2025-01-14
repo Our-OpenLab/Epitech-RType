@@ -13,6 +13,8 @@
 #include "handlers/private_message_handler.hpp"
 #include "handlers/create_lobby_handler.hpp"
 #include "handlers/player_ready_handler.hpp"
+#include "handlers/get_user_list_handler.hpp"
+#include "handlers/private_chat_history_handler.hpp"
 
 namespace rtype {
 
@@ -48,6 +50,16 @@ MainServer<PacketType>::MainServer(uint16_t tcp_port, uint16_t udp_port,
   event_queue_.Subscribe(EventType::PlayerReady, [this](std::shared_ptr<void>
                                                             raw_event) {
     HandlePlayerReady<PacketType>(raw_event, service_container_, game_state_);
+  });
+
+  event_queue_.Subscribe(EventType::GetUserList, [this](std::shared_ptr<void>
+                                                            raw_event) {
+    HandleGetUserList<PacketType>(raw_event, service_container_, game_state_);
+  });
+
+  event_queue_.Subscribe(EventType::PrivateChatHistory, [this](std::shared_ptr<void>
+                                                               raw_event) {
+    HandlePrivateChatHistory<PacketType>(raw_event, service_container_, game_state_);
   });
 }
 

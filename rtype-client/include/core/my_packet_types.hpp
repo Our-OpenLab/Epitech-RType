@@ -29,6 +29,8 @@ enum class MyPacketType : uint32_t {
   kChannelMessageResponse, // Server -> Client: Response to channel message delivery
   kPrivateChatMessage,     // Server -> Client: Deliver a private chat message
   kChannelChatMessage,     // Server -> Client: Deliver a channel chat message
+  kPrivateChatHistory,     // Client -> Server: Request private chat history
+  kPrivateChatHistoryResponse, // Server -> Client: Response with private chat history
 
   // Lobby management
   kCreateLobby,            // Client -> Server: Request to create a new lobby

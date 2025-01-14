@@ -23,6 +23,7 @@ void HandleUserLogin(const std::shared_ptr<void>& raw_event,
   const auto& packet = event->first;
   const auto& connection = event->second;
 
+  // Vérification de la taille du packet
   if (packet.body.size() != sizeof(network::packets::LoginPacket)) {
     std::cerr << "[UserLoginHandler][ERROR] Invalid LoginPacket size."
               << std::endl;
@@ -32,8 +33,9 @@ void HandleUserLogin(const std::shared_ptr<void>& raw_event,
     return;
   }
 
+  // Vérification si l'utilisateur est déjà connecté
   if (const int sender_id = connection->GetId();
-      game_state.IsPlayerActive(sender_id)) {
+      game_state.IsPlayerActiveByConnectionId(sender_id)) {
     std::cerr << "[UserLoginHandler][ERROR] Sender is already connected: ID "
               << sender_id << std::endl;
     auto response_packet = network::CreateLoginResponsePacket<PacketType>(
@@ -42,24 +44,25 @@ void HandleUserLogin(const std::shared_ptr<void>& raw_event,
     return;
   }
 
+  // Extraction des données de login
   const auto* login_data =
-      reinterpret_cast<const network::packets::LoginPacket*>(
-          packet.body.data());
-  const std::string username(login_data->username);
-  const std::string password(login_data->password);
+      reinterpret_cast<const network::packets::LoginPacket*>(packet.body.data());
+  const std::string username(login_data->username, sizeof(login_data->username));
+  const std::string password(login_data->password, sizeof(login_data->password));
 
+  // Validation des informations de l'utilisateur via UserService
   if (const auto user_service = service_container.GetUserService()) {
-    if (const auto user_id =
-            user_service->AuthenticateUser(username, password)) {
+    if (const auto user_id = user_service->AuthenticateUser(username, password)) {
       std::cout << "[UserLoginHandler] User login successful: " << username
                 << " (ID: " << *user_id << ")" << std::endl;
 
-      game_state.AddPlayer(connection->GetId(), connection);
+      game_state.AddPlayer(*user_id, connection);
 
       auto response_packet = network::CreateLoginResponsePacket<PacketType>(200);  // Code 200: Success
       connection->Send(std::move(response_packet));
     } else {
-      std::cerr << "[UserLoginHandler][ERROR] Authentication failed for user: " << username << std::endl;
+      std::cerr << "[UserLoginHandler][ERROR] Authentication failed for user: "
+                << username << std::endl;
 
       auto response_packet = network::CreateLoginResponsePacket<PacketType>(401);  // Code 401: Unauthorized
       connection->Send(std::move(response_packet));

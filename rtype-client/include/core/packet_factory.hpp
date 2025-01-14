@@ -41,6 +41,9 @@ std::optional<Packet<PacketType>> CreatePlayerReadyPacket(bool is_ready);
 template <typename PacketType>
 std::optional<Packet<PacketType>> CreateGetUserListPacket(std::uint32_t offset, std::uint32_t limit);
 
+template <typename PacketType>
+std::optional<Packet<PacketType>> CreatePrivateChatHistoryPacket(int user_id);
+
 }  // namespace network
 
 #include "packet_factory.tpp"

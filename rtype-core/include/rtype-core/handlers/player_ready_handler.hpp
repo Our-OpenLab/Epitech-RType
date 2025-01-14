@@ -38,7 +38,7 @@ void HandlePlayerReady(const std::shared_ptr<void>& raw_event,
   const bool is_ready = ready_data->is_ready;
   const int player_id = connection->GetId();
 
-  if (!game_state.IsPlayerActive(player_id)) {
+  if (!game_state.IsPlayerActiveByConnectionId(player_id)) {
     std::cerr << "[PlayerReadyHandler][ERROR] Player is not connected: ID "
               << player_id << std::endl;
     auto response_packet = network::CreatePlayerReadyPacketResponse<PacketType>(

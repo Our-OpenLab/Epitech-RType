@@ -115,6 +115,20 @@ void MessageDispatcher<PacketType>::InitializeHandlers() {
 
       event_queue_.Publish(rtype::EventType::PlayerReady, std::make_shared<EventData>(std::move(packet), connection));
   };
+
+  tcp_handlers_[static_cast<size_t>(PacketType::kGetUserList)] =
+    [this](Packet<PacketType>&& packet, const std::shared_ptr<TcpServerConnection<PacketType>>& connection) {
+      using EventData = std::pair<Packet<PacketType>, std::shared_ptr<TcpServerConnection<PacketType>>>;
+
+      event_queue_.Publish(rtype::EventType::GetUserList, std::make_shared<EventData>(std::move(packet), connection));
+  };
+
+  tcp_handlers_[static_cast<size_t>(PacketType::kPrivateChatHistory)] =
+    [this](Packet<PacketType>&& packet, const std::shared_ptr<TcpServerConnection<PacketType>>& connection) {
+      using EventData = std::pair<Packet<PacketType>, std::shared_ptr<TcpServerConnection<PacketType>>>;
+
+      event_queue_.Publish(rtype::EventType::PrivateChatHistory, std::make_shared<EventData>(std::move(packet), connection));
+  };
 }
 
 }
