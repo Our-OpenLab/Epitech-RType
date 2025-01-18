@@ -39,13 +39,17 @@ public:
     }
     GetActiveScene().Exit();
     sceneStack.pop();
-    GetActiveScene().Enter();
+    if (!sceneStack.empty()) {
+      GetActiveScene().Enter();
+    }
   }
 
   void ReplaceScene(std::unique_ptr<Scene> scene) {
     if (!scene) {
       throw std::invalid_argument("[SceneManager] Cannot replace with a null scene.");
     }
+    std::cout << "[SceneManager] Replacing scene." << std::endl;
+    std::cout << "[SceneManager] Current scene count: " << sceneStack.size() << std::endl;
     if (!sceneStack.empty()) {
       GetActiveScene().Exit();
       sceneStack.pop();
@@ -83,6 +87,6 @@ private:
   std::stack<std::unique_ptr<Scene>> sceneStack;
 };
 
-}
+}  // namespace rtype
 
-#endif // SCENE_MANAGER_HPP
+#endif  // SCENE_MANAGER_HPP

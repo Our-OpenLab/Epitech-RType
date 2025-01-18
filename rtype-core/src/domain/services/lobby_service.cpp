@@ -53,3 +53,39 @@ bool LobbyService::DeleteLobby(const int lobby_id) const {
   }
   return true;
 }
+
+bool LobbyService::CanJoinLobby(const Lobby& lobby, const std::string& password) const {
+  if (!lobby.password_hash.has_value()) {
+    return true;
+  }
+
+  if (crypto_pwhash_str_verify(
+          lobby.password_hash->c_str(),
+          password.c_str(),
+          password.size()) != 0) {
+    std::cerr << "[LobbyService] Password verification failed for lobby ID " << lobby.id << std::endl;
+    return false;
+          }
+
+  return true;
+}
+
+std::vector<Lobby> LobbyService::GetLobbiesWithPagination(int offset, int limit, const std::string& search_term) const {
+  return lobby_repository_->GetLobbiesWithPagination(offset, limit, search_term);
+}
+
+std::optional<Lobby> LobbyService::GetLobbyByIdWithValidation(const int lobby_id, const std::string& password) const {
+  auto lobby = lobby_repository_->GetLobbyById(lobby_id);
+
+  if (!lobby.has_value()) {
+    std::cerr << "[LobbyService] Lobby with ID " << lobby_id << " not found." << std::endl;
+    return std::nullopt;
+  }
+
+  if (!CanJoinLobby(*lobby, password)) {
+    std::cerr << "[LobbyService] User is not authorized to join lobby ID " << lobby_id << std::endl;
+    return std::nullopt;
+  }
+
+  return lobby;
+}

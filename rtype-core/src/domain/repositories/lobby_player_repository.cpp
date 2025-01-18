@@ -16,6 +16,11 @@ std::vector<int> LobbyPlayerRepository::GetPlayersInLobby(const int lobby_id) {
   return dao_->GetPlayersInLobby(lobby_id);
 }
 
+std::vector<std::pair<int, bool>> LobbyPlayerRepository::GetPlayersWithStatusInLobby(
+    const int lobby_id) {
+  return dao_->GetPlayersWithStatusInLobby(lobby_id);
+}
+
 bool LobbyPlayerRepository::SetPlayerReadyStatus(const int player_id,
                                                  const bool is_ready) {
   return dao_->SetPlayerReadyStatus(player_id, is_ready);

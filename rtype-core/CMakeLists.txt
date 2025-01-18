@@ -82,6 +82,10 @@ set(HEADERS
         include/rtype-core/handlers/player_ready_handler.hpp
         include/rtype-core/handlers/get_user_list_handler.hpp
         include/rtype-core/handlers/private_chat_history_handler.hpp
+        include/rtype-core/handlers/get_lobby_players_handler.hpp
+        include/rtype-core/handlers/leave_lobby_handler.hpp
+        include/rtype-core/handlers/join_lobby_handler.hpp
+        include/rtype-core/handlers/get_lobby_list_handler.hpp
 )
 
 # Define the executable
@@ -123,5 +127,5 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 # Set compile options for Debug and Release modes
 target_compile_options(${PROJECT_NAME} PRIVATE
         $<$<CONFIG:Debug>:-g -Wall>
-        $<$<CONFIG:Release>:-O3 -Wall>
+        $<$<CONFIG:Release>:-Wall -g>
 )

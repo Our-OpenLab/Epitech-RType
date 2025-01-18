@@ -18,14 +18,19 @@ RUN apt-get update && apt-get install -y \
     curl
 
 # Install CMake 3.31
-RUN wget https://github.com/Kitware/CMake/releases/download/v3.31.0/cmake-3.31.0.tar.gz && \
-    tar -zxvf cmake-3.31.0.tar.gz && \
-    rm cmake-3.31.0.tar.gz && \
-    cd cmake-3.31.0 && \
-    ./bootstrap && \
-    make -j$(nproc) && \
-    make install && \
-    cd / && rm -rf /cmake-3.31.0
+# RUN wget https://github.com/Kitware/CMake/releases/download/v3.31.0/cmake-3.31.0.tar.gz && \
+#     tar -zxvf cmake-3.31.0.tar.gz && \
+#     rm cmake-3.31.0.tar.gz && \
+#     cd cmake-3.31.0 && \
+#     ./bootstrap && \
+#     make -j$(nproc) && \
+#     make install && \
+#     cd / && rm -rf /cmake-3.31.0
+
+# Install CMake (precompiled binary for linux-x86_64)
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.31.4/cmake-3.31.4-linux-x86_64.tar.gz && \
+    tar -zxvf cmake-3.31.4-linux-x86_64.tar.gz --strip-components=1 -C /usr/local && \
+    rm cmake-3.31.4-linux-x86_64.tar.gz
 
 # Install a Python virtual environment and Conan
 RUN python3 -m venv /opt/conan-env && \

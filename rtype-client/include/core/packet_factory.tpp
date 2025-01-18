@@ -140,6 +140,47 @@ std::optional<Packet<PacketType>> CreatePrivateChatHistoryPacket(const int user_
   );
 }
 
+template <typename PacketType>
+std::optional<Packet<PacketType>> CreateGetLobbyPlayersPacket(const int lobby_id) {
+  packets::GetLobbyPlayersPacket buffer {};
+  buffer.lobby_id = lobby_id;
+
+  return PacketFactory<PacketType>::CreatePacket(
+      PacketType::kGetLobbyPlayers,
+      std::span(reinterpret_cast<uint8_t*>(&buffer), sizeof(buffer))
+  );
+}
+
+template <typename PacketType>
+std::optional<Packet<PacketType>> CreateLeaveLobbyPacket() {
+  Packet<PacketType> packet;
+  packet.header.type = PacketType::kLeaveLobby;
+
+  return packet;
+}
+
+template <typename PacketType>
+std::optional<Packet<PacketType>> CreateGetLobbyListPacket(
+    const std::uint32_t offset, const std::uint32_t limit, const std::string& search_term) {
+  if (search_term.size() > sizeof(packets::GetLobbyListPacket::search_term)) {
+    std::cerr << "[CreateGetLobbyListPacket][WARNING] Search term truncated to fit the buffer." << std::endl;
+  }
+
+  packets::GetLobbyListPacket buffer {};
+  buffer.offset = offset;
+  buffer.limit = limit;
+
+  // Safely copy the search term, truncating if necessary
+  const size_t copy_size = std::min(search_term.size(), sizeof(buffer.search_term));
+  std::memcpy(buffer.search_term, search_term.data(), copy_size);
+
+  return PacketFactory<PacketType>::CreatePacket(
+      PacketType::kGetLobbyList,
+      std::span(reinterpret_cast<uint8_t*>(&buffer), sizeof(buffer))
+  );
+}
+
+
 }  // namespace network
 
 #endif  // NETWORK_PACKET_FACTORY_TPP_

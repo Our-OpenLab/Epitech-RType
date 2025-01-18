@@ -44,6 +44,16 @@ std::optional<Packet<PacketType>> CreateGetUserListPacket(std::uint32_t offset, 
 template <typename PacketType>
 std::optional<Packet<PacketType>> CreatePrivateChatHistoryPacket(int user_id);
 
+template <typename PacketType>
+std::optional<Packet<PacketType>> CreateGetLobbyPlayersPacket(int lobby_id);
+
+template <typename PacketType>
+std::optional<Packet<PacketType>> CreateLeaveLobbyPacket();
+
+template <typename PacketType>
+std::optional<Packet<PacketType>> CreateGetLobbyListPacket(
+std::uint32_t offset, std::uint32_t limit, const std::string& search_term);
+
 }  // namespace network
 
 #include "packet_factory.tpp"

@@ -5,12 +5,28 @@ kind: Pod
 metadata:
   name: server-pod
   namespace: default
+  labels:
+    app: server
 spec:
   serviceAccountName: pod-creator-sa
   containers:
     - name: server
-      image: guillaumemichel1026/rtype-dev:latest
+      image: guillaumemichel1026/rtype-test:latest
       command: [ "sleep" ]
       args: [ "infinity" ]
       ports:
-        - containerPort: 8080
+        - containerPort: 4242
+          protocol: TCP
+        - containerPort: 4243
+          protocol: UDP
+   #   resources:
+   #     requests:
+  #        memory: "2Gi"
+  #        cpu: "1"
+  #        ephemeral-storage: "10Gi"
+  #      limits:
+  #        memory: "4Gi"
+  #        cpu: "2"
+  #        requests:
+  #        ephemeral-storage: "20Gi"
+

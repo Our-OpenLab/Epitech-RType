@@ -316,6 +316,16 @@ class NetworkServer
     acceptor_.async_accept(
       [self](const std::error_code& ec, asio::ip::tcp::socket socket) {
         if (!ec) {
+
+          try {
+            const auto client_ip =
+                socket.remote_endpoint().address().to_string();
+            const auto client_port = socket.remote_endpoint().port();
+            std::cout << "[DEBUG] Client connected: " << client_ip << ":" << client_port << std::endl;
+          } catch (const std::exception& e) {
+            std::cerr << "[DEBUG][ERROR] Unable to retrieve client endpoint: " << e.what() << std::endl;
+          }
+
           auto connection = std::make_shared<TcpServerConnection<PacketType>>(
               std::move(socket),
               self->received_queue_,

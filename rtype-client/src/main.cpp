@@ -14,12 +14,12 @@
 
 int main(const int argc, const char* argv[]) {
   try {
-    std::string host = "localhost";
+    std::string host = "localhost"; // Par défaut
     std::string tcp_port = "4242";
     uint16_t udp_port = 4243;
 
     if (argc >= 4) {
-      host = argv[1];
+      host = argv[1]; // Adresse IP ou DNS
       tcp_port = argv[2];
       udp_port = static_cast<uint16_t>(std::stoi(argv[3]));
     } else if (argc == 3) {
@@ -34,7 +34,7 @@ int main(const int argc, const char* argv[]) {
         !client.Start(host, tcp_port, udp_port)) {
       std::cerr << "[main] Failed to start client.\n";
       return 1;
-    }
+        }
     std::cout << "[main] Client finished.\n";
     return 0;
 
@@ -43,3 +43,4 @@ int main(const int argc, const char* argv[]) {
     return -1;
   }
 }
+

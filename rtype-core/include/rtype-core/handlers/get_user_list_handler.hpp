@@ -61,7 +61,7 @@ void HandleGetUserList(const std::shared_ptr<void>& raw_event,
     for (const auto& user : users) {
         network::packets::GetUserListResponsePacket::UserInfo user_info{};
         user_info.user_id = user.id;
-        std::memcpy(user_info.username, user.username.c_str(), sizeof(user_info.username));
+        std::memcpy(user_info.username, user.username.c_str(), std::min(user.username.size(), sizeof(user_info.username)));
         user_info.is_online = game_state.IsPlayerActiveByDbId(user.id);
         user_info_list.push_back(user_info);
     }

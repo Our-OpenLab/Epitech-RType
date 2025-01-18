@@ -30,7 +30,7 @@ class Button : public UIElement {
     if (!IsVisible()) return;
 
     // Use the render strategy for the current state if available
-    if (render_strategies_.count(current_state_) > 0) {
+    if (render_strategies_.contains(current_state_)) {
       render_strategies_[current_state_](renderer, *this);
     } else {
       RenderBackground(renderer);
@@ -108,6 +108,13 @@ class TextButton final : public Button {
   void SetTextObject(std::unique_ptr<Text> text_obj) {
     text_ = std::move(text_obj);
     UpdateTextPosition();
+  }
+
+  void SetText(const std::string& new_text) const {
+    if (text_) {
+      text_->SetContent(new_text);
+      UpdateTextPosition();
+    }
   }
 
  protected:

@@ -37,6 +37,9 @@ template <typename PacketType>
 Packet<PacketType> CreateChannelMessageResponsePacket(int status_code);
 
 template <typename PacketType>
+Packet<PacketType> CreateCreateLobbyResponsePacket(int status_code, int lobby_id = -1);
+
+template <typename PacketType>
 Packet<PacketType> CreatePlayerReadyPacketResponse(int status_code);
 
 template <typename PacketType>
@@ -48,6 +51,23 @@ template <typename PacketType>
 Packet<PacketType> CreatePrivateChatHistoryResponsePacket(
     int status_code,
     const std::vector<packets::PrivateChatHistoryResponsePacket::MessageInfo>& messages);
+
+template <typename PacketType>
+Packet<PacketType> CreateGetLobbyPlayersResponsePacket(
+    int status_code,
+    const std::vector<packets::GetLobbyPlayersResponsePacket::PlayerInfo>& players);
+
+template <typename PacketType>
+Packet<PacketType> CreateLeaveLobbyResponsePacket(int status_code);
+
+template <typename PacketType>
+Packet<PacketType> CreatePlayerLeftLobbyNotificationPacket(int player_id);
+
+template <typename PacketType>
+Packet<PacketType> CreateJoinLobbyResponsePacket(int status_code);
+
+template <typename PacketType>
+Packet<PacketType> CreateLobbyPlayerReadyPacket(int player_id, bool is_ready);
 
 }  // namespace network
 

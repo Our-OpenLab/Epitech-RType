@@ -19,6 +19,8 @@ enum class EventType : size_t {
   PlayerReady,      ///< Event triggered when a player is ready.
   GetUserList,      ///< Event triggered when the list of users is requested.
   PrivateChatHistory, ///< Event triggered when the private chat history is requested.
+  GetLobbyPlayers,   ///< Event triggered when the list of players in a lobby is requested.
+  GetLobbyList,     ///< Event triggered when the list of lobbies is requested.
 
   PlayerDied,
   PingTCP,

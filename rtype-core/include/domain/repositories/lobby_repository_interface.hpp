@@ -42,12 +42,43 @@ public:
   virtual std::vector<Lobby> GetAllLobbies() = 0;
 
   /**
+   * @brief Retrieves a list of lobbies with pagination.
+   *
+   * @param offset The offset for pagination.
+   * @param limit The maximum number of lobbies to retrieve.
+   * @param search_term An optional search term to filter lobbies.
+   * @return std::vector<Lobby> A list of lobbies with pagination.
+   */
+  virtual std::vector<Lobby> GetLobbiesWithPagination(int offset, int limit, const std::string& search_term) = 0;
+
+  /**
    * @brief Deletes a lobby by its ID.
    *
    * @param lobby_id The ID of the lobby to delete.
    * @return bool True if the lobby was successfully deleted, false otherwise.
    */
   virtual bool DeleteLobby(int lobby_id) = 0;
+
+  /**
+   *
+   * @param id The ID of the lobby.
+   * @return bool True if the operation was successful, false otherwise.
+   */
+  virtual bool StartGame(int id) = 0;
+
+  /**
+   *
+   * @param id The ID of the lobby.
+   * @return bool True if the operation was successful, false otherwise.
+   */
+  virtual bool EndGame(int id) = 0;
+
+  /**
+   *
+   * @param id The ID of the lobby.
+   * @return bool True if the game is active, false otherwise.
+   */
+  virtual bool IsGameActive(int id) const = 0;
 };
 
 #endif  // LOBBY_REPOSITORY_INTERFACE_HPP_

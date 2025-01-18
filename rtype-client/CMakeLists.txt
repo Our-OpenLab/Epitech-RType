@@ -19,6 +19,10 @@ set(SOURCES
         src/scenes/login_scene.cpp
         src/scenes/register_scene.cpp
         src/scenes/main_menu_scene.cpp
+        src/scenes/create_lobby_scene.cpp
+        src/scenes/lobby_scene.cpp
+        src/scenes/lobby_password_scene.cpp
+        src/scenes/game_scene.cpp
 
         src/ui/text_box.cpp
         src/ui/chat_overlay.cpp
@@ -43,6 +47,10 @@ set(HEADERS
         include/scenes/login_scene.hpp
         include/scenes/register_scene.hpp
         include/scenes/main_menu_scene.hpp
+        include/scenes/create_lobby_scene.hpp
+        include/scenes/lobby_scene.hpp
+        include/scenes/lobby_password_scene.hpp
+        include/scenes/game_scene.hpp
 
         include/ui/ui_element.hpp
         include/ui/button.hpp

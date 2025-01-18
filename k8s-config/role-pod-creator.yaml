@@ -7,5 +7,5 @@ metadata:
   name: pod-creator
 rules:
   - apiGroups: [""] # "" indicates the core API group
-    resources: ["pods"]
+    resources: ["pods", "services", "endpoints"]
     verbs: ["get", "watch", "list", "create"]

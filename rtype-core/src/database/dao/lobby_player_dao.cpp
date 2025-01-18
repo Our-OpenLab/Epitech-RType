@@ -61,6 +61,27 @@ std::vector<int> LobbyPlayerDAO::GetPlayersInLobby(const int lobby_id) const {
     return {it->second.begin(), it->second.end()};
 }
 
+std::vector<std::pair<int, bool>> LobbyPlayerDAO::GetPlayersWithStatusInLobby(
+    const int lobby_id) const {
+  std::vector<std::pair<int, bool>> players_with_status;
+
+  const auto it = lobby_to_players_.find(lobby_id);
+  if (it == lobby_to_players_.end()) {
+    return players_with_status;
+  }
+
+  players_with_status.reserve(it->second.size());
+
+  for (const int user_id : it->second) {
+    if (auto player_it = player_info_.find(user_id);
+        player_it != player_info_.end()) {
+      players_with_status.emplace_back(user_id, player_it->second.is_ready);
+        }
+  }
+
+  return players_with_status;
+}
+
 bool LobbyPlayerDAO::SetPlayerReadyStatus(const int user_id, bool is_ready) {
     const auto it = player_info_.find(user_id);
     if (it == player_info_.end()) {

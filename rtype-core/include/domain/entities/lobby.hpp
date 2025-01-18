@@ -12,6 +12,7 @@ struct Lobby {
   int id;                                ///< Unique ID of the lobby.
   std::string name;                      ///< Name of the lobby.
   std::optional<std::string> password_hash;   ///< Optional password hash for the lobby.
+  bool game_active = false;              ///< Indicates if a game is in progress in this lobby.
 
   /**
    * @brief Overloads the output operator for printing Lobby objects.
@@ -24,7 +25,7 @@ struct Lobby {
     os << "Lobby {"
        << "id: " << lobby.id << ", "
        << "name: \"" << lobby.name << "\", "
-       << "}";
+       << "game_active: " << (lobby.game_active ? "true" : "false") << "}";
     return os;
   }
 };

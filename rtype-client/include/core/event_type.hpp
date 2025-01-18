@@ -31,12 +31,25 @@ enum class EventType : size_t {
   ServerUnreachable,
   UnauthorizedAccess,
 
+  GameConnectionInfo, // Information about the game server connection
+
   // User management
   GetUserListRequest,   // Request to fetch the list of users
   GetUserListResponse,  // Response containing the list of users
 
-  PrivateChatHistoryResponse,
+  PlayerReadyResponse,
+  LobbyPlayerReady,
 
+  PrivateChatHistoryResponse,
+  PrivateChatMessage,
+  CreateLobbyResponse,
+  LeaveLobbyResponse,
+  PlayerJoinedLobby,
+  PlayerLeftLobby,
+  GetLobbyPlayersResponse,
+  LobbiesResponse,
+  JoinLobbyResponse,
+  GetLobbyListResponse,
   // Must always be the last entry
   MaxTypes
 };

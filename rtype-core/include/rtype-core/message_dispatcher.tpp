@@ -129,6 +129,35 @@ void MessageDispatcher<PacketType>::InitializeHandlers() {
 
       event_queue_.Publish(rtype::EventType::PrivateChatHistory, std::make_shared<EventData>(std::move(packet), connection));
   };
+
+  tcp_handlers_[static_cast<size_t>(PacketType::kGetLobbyPlayers)] =
+    [this](Packet<PacketType>&& packet, const std::shared_ptr<TcpServerConnection<PacketType>>& connection) {
+      using EventData = std::pair<Packet<PacketType>, std::shared_ptr<TcpServerConnection<PacketType>>>;
+
+      event_queue_.Publish(rtype::EventType::GetLobbyPlayers, std::make_shared<EventData>(std::move(packet), connection));
+
+  };
+
+  tcp_handlers_[static_cast<size_t>(PacketType::kLeaveLobby)] =
+    [this](Packet<PacketType>&& packet, const std::shared_ptr<TcpServerConnection<PacketType>>& connection) {
+      using EventData = std::pair<Packet<PacketType>, std::shared_ptr<TcpServerConnection<PacketType>>>;
+
+      event_queue_.Publish(rtype::EventType::LeaveLobby, std::make_shared<EventData>(std::move(packet), connection));
+  };
+
+  tcp_handlers_[static_cast<size_t>(PacketType::kJoinLobby)] =
+    [this](Packet<PacketType>&& packet, const std::shared_ptr<TcpServerConnection<PacketType>>& connection) {
+      using EventData = std::pair<Packet<PacketType>, std::shared_ptr<TcpServerConnection<PacketType>>>;
+
+      event_queue_.Publish(rtype::EventType::JoinLobby, std::make_shared<EventData>(std::move(packet), connection));
+  };
+
+  tcp_handlers_[static_cast<size_t>(PacketType::kGetLobbyList)] =
+    [this](Packet<PacketType>&& packet, const std::shared_ptr<TcpServerConnection<PacketType>>& connection) {
+      using EventData = std::pair<Packet<PacketType>, std::shared_ptr<TcpServerConnection<PacketType>>>;
+
+      event_queue_.Publish(rtype::EventType::GetLobbyList, std::make_shared<EventData>(std::move(packet), connection));
+  };
 }
 
 }

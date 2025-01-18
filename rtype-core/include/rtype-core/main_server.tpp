@@ -15,6 +15,10 @@
 #include "handlers/player_ready_handler.hpp"
 #include "handlers/get_user_list_handler.hpp"
 #include "handlers/private_chat_history_handler.hpp"
+#include "handlers/get_lobby_players_handler.hpp"
+#include "handlers/leave_lobby_handler.hpp"
+#include "handlers/join_lobby_handler.hpp"
+#include "handlers/get_lobby_list_handler.hpp"
 
 namespace rtype {
 
@@ -60,6 +64,26 @@ MainServer<PacketType>::MainServer(uint16_t tcp_port, uint16_t udp_port,
   event_queue_.Subscribe(EventType::PrivateChatHistory, [this](std::shared_ptr<void>
                                                                raw_event) {
     HandlePrivateChatHistory<PacketType>(raw_event, service_container_, game_state_);
+  });
+
+  event_queue_.Subscribe(EventType::GetLobbyPlayers, [this](std::shared_ptr<void>
+                                                            raw_event) {
+    HandleGetLobbyPlayers<PacketType>(raw_event, service_container_, game_state_);
+  });
+
+  event_queue_.Subscribe(EventType::LeaveLobby, [this](std::shared_ptr<void>
+                                                          raw_event) {
+    HandleLeaveLobby<PacketType>(raw_event, service_container_, game_state_);
+  });
+
+  event_queue_.Subscribe(EventType::JoinLobby , [this](std::shared_ptr<void>
+                                                          raw_event) {
+    HandleJoinLobby<PacketType>(raw_event, service_container_, game_state_);
+  });
+
+  event_queue_.Subscribe(EventType::GetLobbyList, [this](std::shared_ptr<void>
+                                                            raw_event) {
+    HandleGetLobbyList<PacketType>(raw_event, service_container_, game_state_);
   });
 }
 

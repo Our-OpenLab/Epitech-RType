@@ -32,23 +32,26 @@ void HandleCreateLobby(const std::shared_ptr<void>& raw_event,
         return;
     }
 
-    const int creator_id = connection->GetId();
+    const int connection_id = connection->GetId();
+    const auto creator_db_id_opt = game_state.GetDbIdByConnectionId(connection_id);
 
-    if (!game_state.IsPlayerActiveByConnectionId(creator_id)) {
-        std::cerr << "[CreateLobbyHandler][ERROR] Creator is not connected: ID "
-                  << creator_id << std::endl;
+    if (!creator_db_id_opt) {
+        std::cerr << "[CreateLobbyHandler][ERROR] Creator is not connected: Connection ID "
+                  << connection_id << std::endl;
         auto error_response = network::CreateCreateLobbyResponsePacket<PacketType>(
             401);  // Code 401: Unauthorized
         connection->Send(std::move(error_response));
         return;
     }
 
+    const int creator_db_id = *creator_db_id_opt;
     const auto* lobby_data =
         reinterpret_cast<const network::packets::CreateLobbyPacket*>(packet.body.data());
     const std::string lobby_name(lobby_data->name);
     const std::string password(lobby_data->password);
 
     if (const auto lobby_service = service_container.GetLobbyService()) {
+        // Création du lobby
         auto lobby_result = lobby_service->CreateLobby(
             lobby_name, password.empty() ? std::nullopt : std::optional{password});
 
@@ -63,19 +66,27 @@ void HandleCreateLobby(const std::shared_ptr<void>& raw_event,
 
         const auto& lobby = *lobby_result;
 
+        // Ajout du créateur au lobby
         if (const auto lobby_player_service = service_container.GetLobbyPlayerService()) {
-            if (!lobby_player_service->AddPlayerToLobby(creator_id, lobby.id)) {
-                std::cerr << "[CreateLobbyHandler][ERROR] Failed to add player " << creator_id
+            if (!lobby_player_service->AddPlayerToLobby(creator_db_id, lobby.id)) {
+                std::cerr << "[CreateLobbyHandler][ERROR] Failed to add player " << creator_db_id
                           << " to lobby " << lobby.id << std::endl;
                 auto error_response = network::CreateCreateLobbyResponsePacket<PacketType>(
                     500);  // Code 500: Server error
                 connection->Send(std::move(error_response));
                 return;
             }
+        } else {
+            std::cerr << "[CreateLobbyHandler][ERROR] LobbyPlayerService not available." << std::endl;
+            auto error_response = network::CreateCreateLobbyResponsePacket<PacketType>(
+                500);  // Code 500: Server error
+            connection->Send(std::move(error_response));
+            return;
         }
 
+        // Envoyer une réponse avec l'ID du lobby
         auto response = network::CreateCreateLobbyResponsePacket<PacketType>(
-            200);  // Code 200: Success
+            200, lobby.id);  // Code 200: Success, include lobby ID
         connection->Send(std::move(response));
 
         std::cout << "[CreateLobbyHandler] Lobby created successfully: " << lobby.name

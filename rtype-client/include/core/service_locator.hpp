@@ -44,6 +44,23 @@ public:
   }
 
   /**
+   * @brief Retrieves the shared pointer of the registered service instance.
+   *
+   * Throws an exception if the service is not found.
+   *
+   * @tparam T The type of the service to retrieve.
+   * @return A shared pointer to the registered service instance.
+   */
+  template <typename T>
+  static std::shared_ptr<T> GetShared() {
+    auto& service = GetStorage<T>();
+    if (!service) {
+      throw std::runtime_error("Service not found: " + std::string(typeid(T).name()));
+    }
+    return service;
+  }
+
+  /**
    * @brief Checks if a service of the specified type is registered.
    *
    * @tparam T The type of the service to check.
@@ -52,6 +69,18 @@ public:
   template <typename T>
   static bool Has() {
     return GetStorage<T>() != nullptr;
+  }
+
+  /**
+   * @brief Removes the registered service instance.
+   *
+   * If the service is not registered, this operation does nothing.
+   *
+   * @tparam T The type of the service to remove.
+   */
+  template <typename T>
+  static void Remove() {
+    GetStorage<T>().reset();
   }
 
 private:

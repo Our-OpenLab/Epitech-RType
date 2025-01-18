@@ -24,7 +24,7 @@ namespace rtype {
  * @brief Structure to represent a chat message.
  */
 struct ChatMessage {
-  int sender_id;              ///< ID of the sender.
+  std::uint32_t sender_id;              ///< ID of the sender.
   std::string content;        ///< Message content.
   std::uint64_t message_id;   ///< Unique message ID.
   std::uint64_t timestamp;    ///< Unix timestamp of the message.
@@ -63,6 +63,8 @@ public:
    */
   void HandlePrivateChatHistoryResponse(const network::Packet<network::MyPacketType>& packet);
 
+  void HandlePrivateChatMessage(const network::Packet<network::MyPacketType>& packet);
+
 private:
   TTF_Font* font_;                                ///< Font for rendering text.
   std::vector<std::unique_ptr<TextButton>> user_buttons_; ///< Buttons for user list.
@@ -76,6 +78,7 @@ private:
 
   std::optional<std::uint32_t> selected_user_id_; ///< ID of the currently selected user.
   std::vector<ChatMessage> current_chat_;         ///< Chat history with the selected user.
+  Button* last_selected_button_ = nullptr;
 
   /**
    * @brief Initializes the UI components of the chat overlay.

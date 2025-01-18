@@ -25,7 +25,21 @@ public:
 
   std::vector<Lobby> GetAllLobbies() override;
 
+  std::vector<Lobby> GetLobbiesWithPagination(int offset, int limit, const std::string& search_term) override;
+
   bool DeleteLobby(int lobby_id) override;
+
+  bool StartGame(const int id) override {
+    return lobby_dao_->StartGame(id);
+  }
+
+  bool EndGame(const int id) override {
+    return lobby_dao_->EndGame(id);
+  }
+
+  bool IsGameActive(const int id) const override {
+    return lobby_dao_->IsGameActive(id);
+  }
 
 private:
   std::shared_ptr<LobbyDAO> lobby_dao_; ///< DAO for interacting with the database.

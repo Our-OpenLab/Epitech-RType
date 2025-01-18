@@ -41,12 +41,46 @@ public:
   [[nodiscard]] std::vector<Lobby> GetAllLobbies() const;
 
   /**
+   * @brief Retrieves a list of lobbies with pagination.
+   *
+   * @param offset
+   * @param limit
+   * @param search_term
+   * @return std::vector<Lobby> A list of lobbies matching the criteria.
+   */
+  [[nodiscard]] std::vector<Lobby> GetLobbiesWithPagination(
+    int offset, int limit, const std::string& search_term) const;
+
+  /**
    * @brief Deletes a lobby by its ID.
    *
    * @param id The ID of the lobby to delete.
    * @return bool True if the lobby was deleted, false otherwise.
    */
   bool DeleteLobby(int id);
+
+  bool StartGame(const int id) {
+    if (const auto it = lobbies_.find(id);
+        it != lobbies_.end() && !it->second.game_active) {
+      it->second.game_active = true;
+      return true;
+    }
+    return false;
+  }
+
+  bool EndGame(const int id) {
+    if (const auto it = lobbies_.find(id);
+        it != lobbies_.end() && it->second.game_active) {
+      it->second.game_active = false;
+      return true;
+    }
+    return false;
+  }
+
+  [[nodiscard]] bool IsGameActive(const int id) const {
+    const auto it = lobbies_.find(id);
+    return it != lobbies_.end() && it->second.game_active;
+  }
 
 private:
   int next_lobby_id_{1}; ///< Auto-incrementing ID for new lobbies.

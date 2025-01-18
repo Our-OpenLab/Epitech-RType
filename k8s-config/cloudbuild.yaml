@@ -1,0 +1,22 @@
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args: [
+      "-c",
+      "docker pull gcr.io/r-type-448118/rtype-test:latest || exit 0"
+    ]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args: [
+      "build",
+      "-f", "Dockerfile.test",
+      "-t", "gcr.io/r-type-448118/rtype-test:latest",
+      "--cache-from=gcr.io/r-type-448118/rtype-test:latest",
+      "."
+    ]
+
+images:
+  - "gcr.io/r-type-448118/rtype-test:latest"
+
+options:
+  machineType: "E2_HIGHCPU_32"

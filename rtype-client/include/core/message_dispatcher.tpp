@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+#include "event_type.hpp"
+
 namespace network {
 
 template <typename PacketType>
@@ -15,6 +17,8 @@ MessageDispatcher<PacketType>::MessageDispatcher(
 template <typename PacketType>
 void MessageDispatcher<PacketType>::Dispatch(Packet<PacketType>&& packet) const {
   const auto index = static_cast<size_t>(packet.header.type);
+  std::cout << "[MessageDispatcher] Dispatching packet: "
+            << static_cast<size_t>(packet.header.type) << std::endl;
   if (index < handlers_.size() && handlers_[index]) {
     handlers_[index](std::move(packet));
   } else {
@@ -61,6 +65,61 @@ void MessageDispatcher<PacketType>::InitializeHandlers() {
     [this](Packet<PacketType>&& packet) {
       event_queue_.Publish(rtype::EventType::PrivateChatHistoryResponse, std::move(packet));
   };
+
+  handlers_[static_cast<size_t>(PacketType::kPrivateChatMessage)] =
+    [this](Packet<PacketType>&& packet) {
+      event_queue_.Publish(rtype::EventType::PrivateChatMessage, std::move(packet));
+    };
+
+  handlers_[static_cast<size_t>(PacketType::kCreateLobbyResponse)] =
+    [this](Packet<PacketType>&& packet) {
+      event_queue_.Publish(rtype::EventType::CreateLobbyResponse, std::move(packet));
+  };
+
+  handlers_[static_cast<size_t>(PacketType::kGetLobbyPlayersResponse)] =
+    [this](Packet<PacketType>&& packet) {
+      event_queue_.Publish(rtype::EventType::GetLobbyPlayersResponse, std::move(packet));
+    };
+
+  handlers_[static_cast<size_t>(PacketType::kLeaveLobbyResponse)] =
+    [this](Packet<PacketType>&& packet) {
+      event_queue_.Publish(rtype::EventType::LeaveLobbyResponse, std::move(packet));
+    };
+
+  handlers_[static_cast<size_t>(PacketType::kPlayerJoinedLobby)] =
+    [this](Packet<PacketType>&& packet) {
+      event_queue_.Publish(rtype::EventType::PlayerJoinedLobby, std::move(packet));
+    };
+
+  handlers_[static_cast<size_t>(PacketType::kPlayerLeftLobby)] =
+    [this](Packet<PacketType>&& packet) {
+      event_queue_.Publish(rtype::EventType::PlayerLeftLobby, std::move(packet));
+    };
+
+  handlers_[static_cast<size_t>(PacketType::kJoinLobbyResponse)] =
+    [this](Packet<PacketType>&& packet) {
+      event_queue_.Publish(rtype::EventType::JoinLobbyResponse, std::move(packet));
+    };
+
+  handlers_[static_cast<size_t>(PacketType::kGetLobbyListResponse)] =
+    [this](Packet<PacketType>&& packet) {
+      event_queue_.Publish(rtype::EventType::GetLobbyListResponse, std::move(packet));
+    };
+
+  handlers_[static_cast<size_t>(PacketType::kPlayerReadyResponse)] =
+    [this](Packet<PacketType>&& packet) {
+      event_queue_.Publish(rtype::EventType::PlayerReadyResponse, std::move(packet));
+    };
+
+  handlers_[static_cast<size_t>(PacketType::kLobbyPlayerReady)] =
+    [this](Packet<PacketType>&& packet) {
+      event_queue_.Publish(rtype::EventType::LobbyPlayerReady, std::move(packet));
+    };
+
+  handlers_[static_cast<size_t>(PacketType::kGameConnectionInfo)] =
+    [this](Packet<PacketType>&& packet) {
+      event_queue_.Publish(rtype::EventType::GameConnectionInfo, std::move(packet));
+    };
 }
 
 }  // namespace network

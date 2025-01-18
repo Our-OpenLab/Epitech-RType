@@ -47,6 +47,16 @@ public:
   virtual std::vector<int> GetPlayersInLobby(int lobby_id) = 0;
 
   /**
+   * @brief Retrieves a list of players in a lobby along with their ready
+   * status.
+   *
+   * @param lobby_id The ID of the lobby.
+   * @return std::vector<std::pair<int, bool>> A list of pairs, where each pair
+   * contains a player ID and their ready status.
+   */
+  virtual std::vector<std::pair<int, bool>> GetPlayersWithStatusInLobby(int lobby_id) = 0;
+
+  /**
    * @brief Sets the ready status of a player.
    *
    * @param player_id The ID of the player.

@@ -35,15 +35,25 @@ enum class MyPacketType : uint32_t {
   // Lobby management
   kCreateLobby,            // Client -> Server: Request to create a new lobby
   kCreateLobbyResponse,    // Server -> Client: Response to lobby creation request
+  kGetLobbyPlayers,        // Client -> Server: Request the list of players in a lobby
+  kGetLobbyPlayersResponse, // Server -> Client: Response with the list of players in a lobby
   kJoinLobby,              // Client -> Server: Request to join a lobby
   kJoinLobbyResponse,      // Server -> Client: Response to join lobby request
   kLeaveLobby,             // Client -> Server: Request to leave the current lobby
   kLeaveLobbyResponse,     // Server -> Client: Response to leave lobby request
-  kLobbyUpdate,            // Server -> Client: Notify about lobby updates (e.g., players joining/leaving)
+  kLobbyPlayerReady,     // Client -> Server: Notify the server about the player's readiness
+
+  kPlayerLeftLobby,        // Server -> Client: Notification of a player leaving a lobby
+  kPlayerJoinedLobby,      // Server -> Client: Notification of a player joining a lobby
+
+  kGetLobbyList,          // Client -> Server: Request the list of all lobbies
+  kGetLobbyListResponse,  // Server -> Client: Response with the list of lobbies
 
   // Player ready state
   kPlayerReady,            // Client -> Server: Notify readiness
   kPlayerReadyResponse,    // Server -> Client: Acknowledge readiness
+
+  kGameConnectionInfo,      // Server -> Client: Send game connection information
 
   // Player management
   kPlayerAssign,           // Server -> Client: Assign an ID to the player

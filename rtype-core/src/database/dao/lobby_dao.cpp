@@ -28,6 +28,33 @@ std::vector<Lobby> LobbyDAO::GetAllLobbies() const {
   return result;
 }
 
+
+std::vector<Lobby> LobbyDAO::GetLobbiesWithPagination(
+    const int offset, const int limit, const std::string& search_term) const {
+  std::vector<Lobby> result;
+  int skipped = 0;
+
+  for (const auto& [id, lobby] : lobbies_) {
+    if (!search_term.empty() && lobby.name.find(search_term) == std::string::npos) {
+      continue;
+    }
+
+    if (skipped < offset) {
+      ++skipped;
+      continue;
+    }
+
+    if (static_cast<int>(result.size()) < limit) {
+      result.push_back(lobby);
+    } else {
+      break;
+    }
+  }
+
+  return result;
+}
+
+
 bool LobbyDAO::DeleteLobby(const int id) {
   return lobbies_.erase(id) > 0;
 }

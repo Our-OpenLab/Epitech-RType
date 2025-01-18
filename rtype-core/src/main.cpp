@@ -37,9 +37,9 @@ int main()
       "@my-postgres-postgresql.default.svc.cluster.local:5432/mydb";
       */
 
- // rtype::MainServer<network::MyPacketType> game_server(4242, 4243, "postgresql://postgres:GFGsdqXILY@my-postgres-postgresql.default.svc.cluster.local:5432/mydb");
+  rtype::MainServer<network::MyPacketType> game_server(4242, 4243, "postgresql://postgres:PiyYPnTAkE@my-postgres-postgresql.default.svc.cluster.local:5432/mydb");
 
-  rtype::MainServer<network::MyPacketType> game_server(4242, 4243, "postgresql://postgres:GFGsdqXILY@localhost:5432/mydb");
+ // rtype::MainServer<network::MyPacketType> game_server(4242, 4243, "postgresql://postgres:GFGsdqXILY@localhost:5432/mydb");
 
   Controller controller(game_server);
 
