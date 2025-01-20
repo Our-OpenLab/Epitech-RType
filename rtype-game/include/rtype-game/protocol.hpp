@@ -90,6 +90,13 @@ struct UpdateEnemy {
   float y;      ///< Y-coordinate of the enemy.
 };
 
+/**
+ * @brief Structure used to send player updates to clients.
+ */
+struct RemovePlayer {
+  uint8_t player_id;  ///< Unique ID of the player.
+};
+
 #pragma pack(pop)
 
 }  // namespace network::packets

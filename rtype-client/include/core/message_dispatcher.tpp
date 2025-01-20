@@ -155,6 +155,10 @@ void MessageDispatcher<PacketType>::InitializeHandlers() {
   handlers_[static_cast<size_t>(PacketType::kRemoveEnemy)] = [this](const Packet<PacketType>&& packet) {
     event_queue_.Publish(rtype::EventType::RemoveEnemy, std::move(packet));
   };
+
+  handlers_[static_cast<size_t>(PacketType::kRemovePlayer)] = [this](const Packet<PacketType>&& packet) {
+    event_queue_.Publish(rtype::EventType::RemovePlayer, std::move(packet));
+  };
 }
 
 }  // namespace network

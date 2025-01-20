@@ -214,6 +214,7 @@ void LobbyScene::Exit() {
   event_queue_.ClearHandlers(EventType::PlayerLeftLobby);
   event_queue_.ClearHandlers(EventType::LeaveLobbyResponse);
   event_queue_.ClearHandlers(EventType::PlayerReadyResponse);
+  event_queue_.ClearHandlers(EventType::LobbyPlayerReady);
   event_queue_.ClearHandlers(EventType::GameConnectionInfo);
 }
 

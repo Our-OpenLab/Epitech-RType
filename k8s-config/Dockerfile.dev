@@ -1,5 +1,5 @@
 # Single step: Set up a complete environment with all necessary dependencies
-FROM ubuntu:24.04
+FROM ubuntu:24.04 AS build
 
 # Install essential tools, GCC 14, Python, and other system dependencies
 RUN apt-get update && apt-get install -y \
@@ -81,3 +81,15 @@ COPY . /app
 # Configure and build the application using CMake with Conan presets
 RUN cmake --preset conan-release && \
     cmake --build --preset conan-release
+
+# Stage 2: Final minimal image
+FROM ubuntu:24.04 AS final
+
+# Set working directory
+WORKDIR /app
+
+# Ensure the target directory exists
+RUN mkdir -p /app/build/Release/bin
+
+# Copy the executable(s) from the build stage to the same path in the final image
+COPY --from=build /app/build/Release/bin/RTypeGame /app/build/Release/bin/RTypeGame

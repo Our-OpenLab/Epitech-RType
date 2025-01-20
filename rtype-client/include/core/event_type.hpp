@@ -60,6 +60,7 @@ enum class EventType : size_t {
   PlayerLeave,
   RemoveProjectile,
   RemoveEnemy,
+  RemovePlayer,
   // Must always be the last entry
   MaxTypes
 };

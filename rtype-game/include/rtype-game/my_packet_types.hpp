@@ -76,6 +76,10 @@ enum class MyPacketType : uint32_t {
   // Miscellaneous
   kUdpPort,                // Client -> Server: Send UDP port to the server
 
+  kRemovePlayer,         // Server -> Client: Remove a player
+
+  kWelcome,
+
   kMaxTypes                // Maximum number of packet types
 };
 

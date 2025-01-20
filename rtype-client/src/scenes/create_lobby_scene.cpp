@@ -149,6 +149,7 @@ void CreateLobbyScene::Exit() {
 
   // Clear handlers for the CreateLobbyResponse event
   event_queue_.ClearHandlers(EventType::CreateLobbyResponse);
+  
 }
 
 void CreateLobbyScene::Update(float /*delta_time*/) {}

@@ -126,7 +126,7 @@ void MainMenuScene::HandleInput(const SDL_Event& event) {
 
 void MainMenuScene::InitializeUI() {
   const std::string font_path = "assets/fonts/Roboto-Regular.ttf";
-  constexpr int font_size = 36;
+  constexpr int font_size = 24;
   SDL_Color white_color{255, 255, 255, 255};
 
   // Load font

@@ -97,9 +97,9 @@ public:
                   const std::string& filePath,
                   const int fontSize)
     {
-        if (fonts_.contains(id)) {
-            return true;
-        }
+      //  if (fonts_.contains(id)) {
+      //      return true;
+      //  }
 
         TTF_Font* newFont = TTF_OpenFont(filePath.c_str(), fontSize);
         if (!newFont) {

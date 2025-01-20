@@ -280,6 +280,31 @@ void GameScene::Enter() {
     game_state_.RemoveEnemy(enemy_id);
   });
 
+  event_queue_.Subscribe(EventType::RemovePlayer, [this](const network::Packet<network::MyPacketType>& packet) {
+        const auto extracted_data =
+            network::PacketFactory<network::MyPacketType>::ExtractData<network::packets::RemovePlayer>(packet);
+
+    if (!extracted_data) {
+        std::cerr << "[Client][ERROR] Failed to extract RemovePlayer data from packet: invalid size." << std::endl;
+        return;
+    }
+
+    const auto& [player_id] = *extracted_data;
+
+    game_state_.RemovePlayer(player_id);
+
+    if (player_id == client_id_) {
+        std::cout << "[Client][INFO] Player ID " << static_cast<int>(player_id)
+                  << " has left the game. Returning to Main Menu." << std::endl;
+
+      auto& main_server = ServiceLocator::Get<MainServer<network::MyPacketType>>("main_server");
+      main_server.SwitchToNetworkServer();
+
+      renderer_.SwitchToSDL("R-Type - Main Menu");
+        scene_manager_.ReplaceScene(std::make_unique<MainMenuScene>());
+    }
+  });
+
   registry_.register_component<ClientPlayer>();
   registry_.register_component<Enemy>();
   registry_.register_component<Projectile>();
@@ -290,6 +315,16 @@ void GameScene::Enter() {
 
 void GameScene::Exit() {
   std::cout << "[GameScene] Exit()" << std::endl;
+
+  event_queue_.ClearHandlers(EventType::PlayerAssign);
+  event_queue_.ClearHandlers(EventType::UpdatePlayers);
+  event_queue_.ClearHandlers(EventType::UpdateProjectiles);
+  event_queue_.ClearHandlers(EventType::UpdateEnemies);
+  event_queue_.ClearHandlers(EventType::PlayerJoined);
+  event_queue_.ClearHandlers(EventType::PlayerLeave);
+  event_queue_.ClearHandlers(EventType::RemoveProjectile);
+  event_queue_.ClearHandlers(EventType::RemoveEnemy);
+  event_queue_.ClearHandlers(EventType::RemovePlayer);
 }
 
 void GameScene::Update(float /*delta_time*/) {
@@ -346,6 +381,9 @@ void GameScene::Render() {
   RenderMapBorders();
 
   RenderEntities();
+
+  renderer_.DrawScore(game_state_.GetLocalPlayerScore(), {600.0f, 20.0f});
+  renderer_.DrawScore(game_state_.GetLocalPlayerHealth(), {600.0f, 50.0f});
 }
 
 void GameScene::HandleInput(const SDL_Event& event) {

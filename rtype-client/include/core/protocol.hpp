@@ -435,6 +435,13 @@ struct RemoveEnemy {
   uint8_t enemy_id; ///< ID of the enemy to remove.
 };
 
+/**
+ * @brief Structure used to send player updates to clients.
+ */
+struct RemovePlayer {
+  uint8_t player_id;  ///< Unique ID of the player.
+};
+
 #pragma pack(pop)
 
 }  // namespace network::packets

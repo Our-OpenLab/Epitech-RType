@@ -1,6 +1,8 @@
 #include "rtype-game/engine/game_state.hpp"
-#include "rtype-game/network_messages.hpp"
+
 #include "rtype-game/my_packet_types.hpp"
+#include "rtype-game/network_messages.hpp"
+#include "rtype-game/protocol.hpp"
 
 bool GameState::AddPlayer(const uint8_t player_id, const float x, const float y) {
   if (player_entities_.contains(player_id)) {
@@ -43,6 +45,11 @@ void GameState::RemovePlayer(const uint8_t player_id) {
   registry_.kill_entity(entity);
 
   player_entities_.erase(player_id);
+
+  const network::packets::RemovePlayer remove_message{player_id};
+  auto remove_packet = network::PacketFactory<network::MyPacketType>::CreatePacket(
+      network::MyPacketType::kRemovePlayer, remove_message);
+  network_server_.BroadcastTcp(remove_packet);
 
   std::cout << "[GameState][INFO] Player " << static_cast<int>(player_id)
             << " successfully removed.\n";

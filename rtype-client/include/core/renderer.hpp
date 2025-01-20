@@ -41,6 +41,7 @@ public:
   void DrawStarguy(const glm::vec2& position, const glm::vec2& size) const;
   void DrawProjectile(const glm::vec2& position, const glm::vec2& size) const;
   void DrawEnemy(const glm::vec2& position, const glm::vec2& size) const;
+  void DrawScore(int score, const glm::vec2& position) const;
 
 private:
   RendererType currentRenderer_;
@@ -50,6 +51,7 @@ private:
   GLuint starguy_program_{0};
   GLuint projectile_program_{0};
   GLuint enemy_program_{0};
+  GLuint score_shader_program_{0};
 
   // SDL components
   SDL_Window* window_{nullptr};
