@@ -139,6 +139,22 @@ void MessageDispatcher<PacketType>::InitializeHandlers() {
   handlers_[static_cast<size_t>(PacketType::kUpdateEnemies)] = [this](const Packet<PacketType>&& packet) {
     event_queue_.Publish(rtype::EventType::UpdateEnemies, std::move(packet));
   };
+
+  handlers_[static_cast<size_t>(PacketType::kPlayerJoin)] = [this](const Packet<PacketType>&& packet) {
+    event_queue_.Publish(rtype::EventType::PlayerJoined, std::move(packet));
+  };
+
+  handlers_[static_cast<size_t>(PacketType::kPlayerLeave)] = [this](const Packet<PacketType>&& packet) {
+    event_queue_.Publish(rtype::EventType::PlayerLeave, std::move(packet));
+  };
+
+  handlers_[static_cast<size_t>(PacketType::kRemoveProjectile)] = [this](const Packet<PacketType>&& packet) {
+    event_queue_.Publish(rtype::EventType::RemoveProjectile, std::move(packet));
+  };
+
+  handlers_[static_cast<size_t>(PacketType::kRemoveEnemy)] = [this](const Packet<PacketType>&& packet) {
+    event_queue_.Publish(rtype::EventType::RemoveEnemy, std::move(packet));
+  };
 }
 
 }  // namespace network

@@ -404,6 +404,37 @@ struct UpdateEnemy {
   float y;      ///< Y-coordinate of the enemy.
 };
 
+/**
+ * @brief Packet to notify a player about another player's readiness change.
+ */
+struct PlayerJoin {
+  uint8_t player_id;  ///< ID of the player.
+  float x, y;        ///< Position of the player.
+  uint16_t score;   ///< Player's score.
+  uint8_t health;  ///< Player's health.
+};
+
+/**
+ * @brief Packet to notify a player about another player's readiness change.
+ */
+struct PlayerLeave {
+  uint8_t player_id;  ///< ID of the player who left.
+};
+
+/**
+ * @brief Packet to notify a player about another player's readiness change.
+ */
+struct RemoveProjectile {
+  uint8_t projectile_id;  ///< ID of the projectile to remove.
+};
+
+/**
+ * @brief Packet to notify a player about another player's readiness change.
+ */
+struct RemoveEnemy {
+  uint8_t enemy_id; ///< ID of the enemy to remove.
+};
+
 #pragma pack(pop)
 
 }  // namespace network::packets

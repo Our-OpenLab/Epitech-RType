@@ -37,22 +37,27 @@ class MainServer {
   using PacketEventQueue = EventQueue<network::Packet<network::MyPacketType>>;
 public:
   /**
-   * @brief Constructs a MainServer instance.
-   *
-   * Initializes the message dispatcher and event queue resources. The
-   * message dispatcher is tied to the event queue for publishing events
-   * when unrecognized packets arrive or specific packet types are handled.
-   */
-  MainServer()
-  : network_server_(std::make_shared<network::NetworkClient<PacketType>>())
-  , event_queue_(std::make_shared<PacketEventQueue>())
-  , message_dispatcher_(*event_queue_)
-  , renderer_(std::make_shared<Renderer>(1280, 960, "RType Client"))
-  , scene_manager_(std::make_shared<SceneManager>()) {
-    ServiceLocator::Provide(renderer_);
-    ServiceLocator::Provide(event_queue_);
-    ServiceLocator::Provide(network_server_);
-    ServiceLocator::Provide(scene_manager_);
+  * @brief Constructs a MainServer instance.
+  *
+  * Initializes the message dispatcher and event queue resources. The
+  * message dispatcher is tied to the event queue for publishing events
+  * when unrecognized packets arrive or specific packet types are handled.
+  */
+ explicit MainServer(const std::string& local_ip)
+  : network_server_(std::make_shared<network::NetworkClient<PacketType>>()),
+  game_server_(std::make_shared<network::NetworkClient<PacketType>>()),
+  active_server_(network_server_),
+  event_queue_(std::make_shared<PacketEventQueue>()),
+  message_dispatcher_(*event_queue_),
+  renderer_(std::make_shared<Renderer>(1280, 960, "RType Client")),
+  scene_manager_(std::make_shared<SceneManager>()) {
+    ServiceLocator::Provide("renderer", renderer_);
+    ServiceLocator::Provide("event_queue", event_queue_);
+    ServiceLocator::Provide("network_server", network_server_);
+    ServiceLocator::Provide("game_server", game_server_);
+    ServiceLocator::Provide("scene_manager", scene_manager_);
+    ServiceLocator::Provide("main_server", this);
+    ServiceLocator::Provide("local_ip", std::make_shared<std::string>(local_ip));
 
     event_queue_->Subscribe(EventType::Pong, [this](const network::Packet<network::MyPacketType>& packet) {
       if (packet.body.size() != sizeof(network::packets::PingPacket)) {
@@ -95,6 +100,24 @@ public:
    * and joins the client thread.
    */
   void Stop();
+
+  /**
+   * @brief Switches the active server connection to the network server.
+   */
+  void SwitchToNetworkServer() {
+    active_server_ = network_server_;
+  }
+
+  /**
+   * @brief Switches the active server connection to the game server.
+   */
+  void SwitchToGameServer() {
+    active_server_ = game_server_;
+  }
+
+  [[nodiscard]] std::shared_ptr<network::NetworkClient<PacketType>> GetActiveServer() const {
+    return active_server_;
+  }
 
   /**
   * @brief Interprets or routes the input commands read from stdin.
@@ -153,7 +176,9 @@ private:
   void SendPing() const;
 
   //GameState game_state_;  ///< Manages the local game state.
-  std::shared_ptr<network::NetworkClient<PacketType>> network_server_;  ///< Handles all network communication.
+  std::shared_ptr<network::NetworkClient<PacketType>> network_server_;   ///< The network server connection.
+  std::shared_ptr<network::NetworkClient<PacketType>> game_server_;   ///< The game server connection.
+  std::shared_ptr<network::NetworkClient<PacketType>> active_server_;  ///< The active server connection.
   std::shared_ptr<PacketEventQueue> event_queue_;  ///< Centralized queue for managing asynchronous events.
   network::MessageDispatcher<PacketType> message_dispatcher_;  ///< Routes incoming packets to their appropriate handlers.
   std::shared_ptr<Renderer> renderer_;  ///< Manages the rendering context.

@@ -83,6 +83,7 @@ class NetworkClient {
       }
 
       std::cout << "[Client][INFO] Successfully connected to " << host << ":" << service << std::endl;
+      connected_host_ = host;
 
       asio::ip::udp::resolver udp_resolver(io_context_);
       const auto udp_endpoints = udp_resolver.resolve(host, std::to_string(udp_port));
@@ -137,7 +138,7 @@ class NetworkClient {
     udp_connection_.reset();
 
     io_context_.reset();
-
+    connected_host_.clear();
     std::cout << "[Client][INFO] Client disconnected successfully." << std::endl;
   }
 
@@ -221,6 +222,14 @@ class NetworkClient {
     return io_context_;
   }
 
+  /**
+   * @brief Gets the host to which the client is connected.
+   *
+   * @return The host as a string, or an empty string if not connected.
+   */
+  [[nodiscard]] const std::string &GetHost() const {
+    return connected_host_;
+  }
 
  private:
   asio::io_context io_context_;  ///< ASIO I/O context for handling asynchronous operations.
@@ -229,6 +238,8 @@ class NetworkClient {
   std::shared_ptr<TcpClientConnection<PacketType>> tcp_connection_;  ///< TCP connection instance.
   std::shared_ptr<UdpClientConnection<PacketType>> udp_connection_;  ///< UDP connection instance.
   std::thread context_thread_;  ///< Thread running the ASIO context.
+
+  std::string connected_host_;  ///< Hostname or IP address of the connected server.
 };
 
 }  // namespace network

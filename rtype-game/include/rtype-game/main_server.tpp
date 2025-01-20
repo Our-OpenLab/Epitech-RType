@@ -14,8 +14,7 @@
 namespace rtype {
 
 template <typename PacketType>
-MainServer<PacketType>::MainServer(uint16_t tcp_port, uint16_t udp_port,
-                                   const std::string& db_connection_string)
+MainServer<PacketType>::MainServer(uint16_t tcp_port, uint16_t udp_port)
     : network_server_(std::make_shared<network::GameNetworkServer<PacketType>>(
           tcp_port, udp_port, event_queue_)),
       message_dispatcher_{event_queue_},

@@ -1,10 +1,7 @@
 #ifndef SERVICE_CONTAINER_HPP_
 #define SERVICE_CONTAINER_HPP_
 
-#include <curl/curl.h>
-
 #include <memory>
-#include <nlohmann/json.hpp>
 
 /**
  * @brief Service container to manage dependencies in the application.

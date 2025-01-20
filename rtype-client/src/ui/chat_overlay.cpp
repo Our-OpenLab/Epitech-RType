@@ -8,9 +8,9 @@ namespace rtype {
 
 ChatOverlay::ChatOverlay()
     : font_(GlobalResourceManager::Instance().GetFont("assets/fonts/Roboto-Regular.ttf")),
-      renderer_(ServiceLocator::Get<Renderer>()),
-      network_server_(ServiceLocator::Get<network::NetworkClient<network::MyPacketType>>()),
-      event_queue_(ServiceLocator::Get<EventQueue<network::Packet<network::MyPacketType>>>()) {
+      renderer_(ServiceLocator::Get<Renderer>("renderer")),
+      network_server_(ServiceLocator::Get<network::NetworkClient<network::MyPacketType>>("network_server")),
+      event_queue_(ServiceLocator::Get<EventQueue<network::Packet<network::MyPacketType>>>("event_queue")) {
   if (!font_) {
     throw std::runtime_error("[ChatOverlay] Failed to retrieve font.");
   }

@@ -3,9 +3,12 @@
 #include <iostream>
 #include <utility>
 
+#include "../../../rtype-game/include/rtype-game/service_container.hpp"
+#include "core/main_server.hpp"
 #include "core/packet_factory.hpp"
-#include "core/resource_manager.hpp"
 #include "core/protocol.hpp"
+#include "core/resource_manager.hpp"
+#include "scenes/main_menu_scene.hpp"
 
 namespace rtype {
 
@@ -13,27 +16,21 @@ GameScene::GameScene(std::string ip_address, const std::vector<int>& ports)
     : ip_address_(std::move(ip_address)),
       ports_(ports),
       is_connected_(false),
-      renderer_(ServiceLocator::Get<Renderer>()),
-      scene_manager_(ServiceLocator::Get<SceneManager>()),
+      renderer_(ServiceLocator::Get<Renderer>("renderer")),
+      scene_manager_(ServiceLocator::Get<SceneManager>("scene_manager")),
       event_queue_(ServiceLocator::Get<
-                   EventQueue<network::Packet<network::MyPacketType>>>()),
+                   EventQueue<network::Packet<network::MyPacketType>>>("event_queue")),
       network_server_(
-          ServiceLocator::Get<network::NetworkClient<network::MyPacketType>>()),
+          ServiceLocator::Get<network::NetworkClient<network::MyPacketType>>("network_server")),
+      game_server_(
+        ServiceLocator::Get<network::NetworkClient<network::MyPacketType>>("game_server")),
       input_manager_(
           [this](InputManager::PlayerInput&& input) {
             HandlePlayerInput(std::move(input));
           },
           screen_manager_),
-      game_state_(registry_)
-{
-  InitializeUI();
-
-  registry_.register_component<ClientPlayer>();
-  registry_.register_component<Enemy>();
-  registry_.register_component<Projectile>();
-  registry_.register_component<Position>();
-  // ConnectToServer();
-}
+    game_state_(registry_)
+{}
 
 void GameScene::InitializeUI() {
 //  const std::string font_path = "assets/fonts/Roboto-Regular.ttf";
@@ -51,22 +48,6 @@ void GameScene::InitializeUI() {
 
  // connection_status_text_ = std::make_unique<Text>(
  //     100, 100, "Connecting to game server...", font_, white_color, renderer_.GetSDLRenderer());
-}
-
-void GameScene::ConnectToServer() {
-  if (ports_.empty()) {
-    throw std::runtime_error("[GameScene][ERROR] No ports provided for game connection.");
-  }
-
-  if (network_server_.Connect(ip_address_, std::to_string(ports_[0]), ports_[1])) {
-    std::cout << "[GameScene][INFO] Successfully connected to server at " << ip_address_
-              << " on ports TCP: " << ports_[0] << ", UDP: " << ports_[1] << std::endl;
-    is_connected_ = true;
-  } else {
-    std::cerr << "[GameScene][ERROR] Failed to connect to server at " << ip_address_
-              << " on ports TCP: " << ports_[0] << ", UDP: " << ports_[1] << std::endl;
-    throw std::runtime_error("Failed to connect to game server.");
-  }
 }
 
 void GameScene::Enter() {
@@ -95,22 +76,29 @@ void GameScene::Enter() {
 
     game_state_.SetLocalPlayerEntity(entity);
 
-    const auto udp_port = network_server_.GetLocalUdpPort();
+    const auto udp_port = game_server_.GetLocalUdpPort();
     if (udp_port == 0) {
-        std::cerr << "[Client][ERROR] Invalid UDP port. Cannot send to server." << std::endl;
-        return;
+      std::cerr << "[Client][ERROR] Invalid UDP port. Cannot send to server."
+                << std::endl;
+      return;
     }
 
-    // Récupération de l'adresse IP privée
-    std::string local_ip;
+    const auto local_ip_ptr = ServiceLocator::GetShared<std::string>("local_ip");
+    std::string local_ip = local_ip_ptr ? *local_ip_ptr : "";
     try {
       asio::ip::tcp::resolver resolver(network_server_.GetIoContext());
       const auto endpoints = resolver.resolve(asio::ip::host_name(), "");
+
+      std::cout << "[DEBUG] Resolved endpoints:" << std::endl;
       for (const auto& endpoint : endpoints) {
         const auto& address = endpoint.endpoint().address();
+        std::cout << "  Address: " << address.to_string()
+                  << " (v4: " << address.is_v4()
+                  << ", loopback: " << address.is_loopback() << ")" << std::endl;
+
         if (address.is_v4() && !address.is_loopback()) {
-            local_ip = address.to_string();
-            break;
+          local_ip = address.to_string();
+          break;
         }
       }
 
@@ -129,8 +117,7 @@ void GameScene::Enter() {
         return;
     }
 
-    network_server_.SendTcp(std::move(*udp_info_packet));
-
+    game_server_.SendTcp(std::move(*udp_info_packet));
 
     std::cout << "[Client][INFO] Sent UDP port (" << udp_port
               << ") and IP (" << local_ip << ") to server." << std::endl;
@@ -236,6 +223,68 @@ void GameScene::Enter() {
     }
   });
 
+  event_queue_.Subscribe(EventType::PlayerJoined, [this](const network::Packet<network::MyPacketType>& packet) {
+        const auto extracted_data =
+            network::PacketFactory<network::MyPacketType>::ExtractData<network::packets::PlayerJoin>(packet);
+
+    if (!extracted_data) {
+        std::cerr << "[Client][ERROR] Failed to extract PlayerJoin data from packet: invalid size." << std::endl;
+        //client_.Shutdown();
+        return;
+    }
+
+    const auto& [player_id, x, y, score, health] = *extracted_data;
+
+    game_state_.AddPlayer(player_id, x, y, score, health);
+  });
+
+  event_queue_.Subscribe(EventType::PlayerLeave, [this](const network::Packet<network::MyPacketType>& packet) {
+        const auto extracted_data =
+            network::PacketFactory<network::MyPacketType>::ExtractData<network::packets::PlayerLeave>(packet);
+
+    if (!extracted_data) {
+        std::cerr << "[Client][ERROR] Failed to extract PlayerLeave data from packet: invalid size." << std::endl;
+        return;
+    }
+
+    const auto& [player_id] = *extracted_data;
+
+    game_state_.RemovePlayer(player_id);
+  });
+
+  event_queue_.Subscribe(EventType::RemoveProjectile, [this](const network::Packet<network::MyPacketType>& packet) {
+        const auto extracted_data =
+            network::PacketFactory<network::MyPacketType>::ExtractData<network::packets::RemoveProjectile>(packet);
+
+    if (!extracted_data) {
+        std::cerr << "[Client][ERROR] Failed to extract RemoveProjectile data from packet: invalid size." << std::endl;
+        return;
+    }
+
+    const auto& [projectile_id] = *extracted_data;
+
+    game_state_.RemoveProjectile(projectile_id);
+  });
+
+  event_queue_.Subscribe(EventType::RemoveEnemy, [this](const network::Packet<network::MyPacketType>& packet) {
+        const auto extracted_data =
+            network::PacketFactory<network::MyPacketType>::ExtractData<network::packets::RemoveEnemy>(packet);
+
+    if (!extracted_data) {
+        std::cerr << "[Client][ERROR] Failed to extract RemoveEnemy data from packet: invalid size." << std::endl;
+        return;
+    }
+
+    const auto& [enemy_id] = *extracted_data;
+
+    game_state_.RemoveEnemy(enemy_id);
+  });
+
+  registry_.register_component<ClientPlayer>();
+  registry_.register_component<Enemy>();
+  registry_.register_component<Projectile>();
+  registry_.register_component<Position>();
+
   ConnectToGameServer();
 }
 
@@ -297,10 +346,6 @@ void GameScene::Render() {
   RenderMapBorders();
 
   RenderEntities();
-
-  if (connection_status_text_) {
-  //  connection_status_text_->Render(renderer_.GetSDLRenderer());
-  }
 }
 
 void GameScene::HandleInput(const SDL_Event& event) {
@@ -308,23 +353,42 @@ void GameScene::HandleInput(const SDL_Event& event) {
 }
 
 void GameScene::ConnectToGameServer() {
-  std::cout << "[GameScene] Attempting to connect to " << ip_address_ << " on ports: ";
-  for (const auto& port : ports_) {
-    std::cout << port << " ";
+  if (ports_.size() < 2 || ports_[0] <= 0 || ports_[1] <= 0) {
+    throw std::runtime_error("[GameScene][ERROR] Invalid ports provided for game server connection.");
   }
-  std::cout << std::endl;
 
-  // Simulate a connection attempt (replace with actual network logic)
-  is_connected_ = true;
+  const auto game_server_host = network_server_.GetHost();
+  if (game_server_host.empty()) {
+    throw std::runtime_error("[GameScene][ERROR] Could not retrieve host for game server.");
+  }
 
-  if (is_connected_) {
-  //  connection_status_text_->SetContent("Connected to game server!");
-  //  connection_status_text_->SetColor(SDL_Color{0, 255, 0, 255});
-  //  std::cout << "[GameScene] Successfully connected to the game server." << std::endl;
-  } else {
-    connection_status_text_->SetContent("Failed to connect to game server.");
-    connection_status_text_->SetColor(SDL_Color{255, 0, 0, 255});
-    std::cerr << "[GameScene][ERROR] Connection to game server failed." << std::endl;
+  std::cout << "[GameScene][INFO] Attempting to connect to game server at " << game_server_host
+            << " with ports TCP: " << ports_[0] << ", UDP: " << ports_[1] << std::endl;
+
+  try {
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+    auto& main_server = ServiceLocator::Get<MainServer<network::MyPacketType>>("main_server");
+
+    main_server.SwitchToGameServer();
+
+    //if (game_server_.Connect(game_server_host, "4244", 4245)) {
+    if (game_server_.Connect(game_server_host, std::to_string(ports_[0]), ports_[1])) {
+      std::cout << "[GameScene][INFO] Successfully connected to game server at " << game_server_host
+                << " on TCP port " << ports_[0] << " and UDP port " << ports_[1] << std::endl;
+      renderer_.SwitchToOpenGL("R-Type - Game");
+      is_connected_ = true;
+    } else {
+      std::cerr << "[GameScene][ERROR] Failed to connect to game server at " << game_server_host
+                << " on ports TCP: " << ports_[0] << ", UDP: " << ports_[1] << std::endl;
+
+      main_server.SwitchToNetworkServer();
+      throw std::runtime_error("Failed to connect to the game server.");
+    }
+  } catch (const std::exception& e) {
+    std::cerr << "[GameScene][ERROR] Exception while connecting to game server: " << e.what() << std::endl;
+    std::cerr << "[GameScene][INFO] Switching back to the main menu due to connection failure." << std::endl;
+    scene_manager_.ReplaceScene(std::make_unique<MainMenuScene>());
+   // throw;
   }
 }
 
@@ -334,7 +398,7 @@ void GameScene::HandlePlayerInput(InputManager::PlayerInput&& input)
       client_id_, input.actions, input.dir_x, input.dir_y);
 
   if (input_packet) {
-    network_server_.SendUdp(std::move(*input_packet));
+    game_server_.SendUdp(std::move(*input_packet));
   } else {
     std::cerr << "[GameScene][ERROR] Failed to create player input packet." << std::endl;
   }

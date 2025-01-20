@@ -14,33 +14,35 @@
 
 int main(const int argc, const char* argv[]) {
   try {
-    std::string host = "localhost"; // Par défaut
-    std::string tcp_port = "4242";
-    uint16_t udp_port = 4243;
-
-    if (argc >= 4) {
-      host = argv[1]; // Adresse IP ou DNS
-      tcp_port = argv[2];
-      udp_port = static_cast<uint16_t>(std::stoi(argv[3]));
-    } else if (argc == 3) {
-      host = argv[1];
-      tcp_port = argv[2];
-      std::cout << "[INFO] Using default UDP port: 4243\n";
-    } else {
-      std::cout << "[INFO] Using default host, TCP port, and UDP port: localhost:4242 (UDP: 4243)\n";
+    if (argc < 5) {
+      std::cerr << "[ERROR] Usage: " << argv[0]
+                << " <host> <tcp_port> <udp_port> <local_ip>\n";
+      std::cerr << "[INFO] Please provide the server details and your local IP address.\n";
+      return -1;
     }
 
-    if (rtype::MainServer<network::MyPacketType> client;
+    // Récupérer les arguments
+    std::string host = argv[1];           // Adresse IP ou DNS du serveur
+    std::string tcp_port = argv[2];       // Port TCP fourni par l'utilisateur
+    uint16_t udp_port = static_cast<uint16_t>(std::stoi(argv[3])); // Port UDP fourni par l'utilisateur
+    std::string local_ip = argv[4];       // Adresse IP locale fournie par l'utilisateur
+
+    std::cout << "[INFO] Using local IP: " << local_ip << "\n";
+    std::cout << "[INFO] Connecting to server at " << host
+              << " on TCP port " << tcp_port
+              << " and UDP port " << udp_port << "\n";
+
+    if (rtype::MainServer<network::MyPacketType> client(local_ip);
         !client.Start(host, tcp_port, udp_port)) {
       std::cerr << "[main] Failed to start client.\n";
       return 1;
         }
+
     std::cout << "[main] Client finished.\n";
     return 0;
 
   } catch (const std::exception& e) {
-    std::cerr << "Error: " << e.what() << std::endl;
+    std::cerr << "[ERROR] " << e.what() << std::endl;
     return -1;
   }
 }
-

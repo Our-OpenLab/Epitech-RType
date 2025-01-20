@@ -57,7 +57,7 @@ void MainServer<PacketType>::Stop()
 
     is_running_ = false;
 
-    network_server_->Disconnect();
+    active_server_->Disconnect();
 
     std::cout << "[MainServer][INFO] MainServer stopped." << std::endl;
 }
@@ -178,7 +178,7 @@ void MainServer<PacketType>::SendPing() const
     auto ping_packet = network::CreatePingPacket<PacketType>(timestamp_ms);
 
     // Send it via UDP. (Could also be TCP, depending on your protocol.)
-    network_server_->SendTcp(std::move(ping_packet));
+    active_server_->SendTcp(std::move(ping_packet));
 
     // Log or debug output
     // std::cout << "[Client][INFO] Ping sent with timestamp: " << timestamp_ms << " ms" << std::endl;
@@ -191,7 +191,7 @@ void MainServer<PacketType>::ProcessPackets(
     const auto start_time = std::chrono::steady_clock::now();
 
     while (processed_count < max_packets) {
-        auto packet_opt = network_server_->PopMessage();
+        auto packet_opt = active_server_->PopMessage();
         if (!packet_opt) break;
 
         if (auto elapsed_time = std::chrono::steady_clock::now() - start_time;

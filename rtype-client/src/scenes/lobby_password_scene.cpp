@@ -10,10 +10,10 @@ namespace rtype {
 
 LobbyPasswordScene::LobbyPasswordScene(const int lobby_id)
     : lobby_id_(lobby_id),
-      renderer_(ServiceLocator::Get<Renderer>()),
-      scene_manager_(ServiceLocator::Get<SceneManager>()),
-      event_queue_(ServiceLocator::Get<EventQueue<network::Packet<network::MyPacketType>>>()),
-      network_server_(ServiceLocator::Get<network::NetworkClient<network::MyPacketType>>()) {
+      renderer_(ServiceLocator::Get<Renderer>("renderer")),
+      scene_manager_(ServiceLocator::Get<SceneManager>("scene_manager")),
+      event_queue_(ServiceLocator::Get<EventQueue<network::Packet<network::MyPacketType>>>("event_queue")),
+      network_server_(ServiceLocator::Get<network::NetworkClient<network::MyPacketType>>("network_server")) {
   InitializeUI();
 }
 

@@ -1,48 +1,34 @@
+#include <iostream>
+#include <cstdlib>
+
 #include "rtype-game/controller.hpp"
 #include "rtype-game/main_server.hpp"
 #include "rtype-game/my_packet_types.hpp"
 
-/**
- * @brief Reads the content of a file into a string.
- *
- * @param filepath Path to the file.
- * @return The content of the file as a string.
- * @throws std::runtime_error if the file cannot be opened.
- */
-/*
-std::string ReadPasswordFromFile(const std::string& filepath) {
-  std::ifstream file(filepath);
-  if (!file.is_open()) {
-    throw std::runtime_error("Failed to open file: " + filepath);
+int main(const int argc, const char* argv[])
+{
+  if (argc != 3) {
+    std::cerr << "Usage: " << argv[0] << " <TCP_PORT> <UDP_PORT>" << std::endl;
+    return EXIT_FAILURE;
   }
 
-  std::string password;
-  std::getline(file, password);  // Read the first line
-  return password;
-}
-*/
+  const int tcp_port = std::atoi(argv[1]);
+  const int udp_port = std::atoi(argv[2]);
 
-int main()
-{
+  if (tcp_port <= 0 || udp_port <= 0) {
+    std::cerr << "Error: Invalid port numbers provided." << std::endl;
+    return EXIT_FAILURE;
+  }
 
-  // Path provided by Kubernetes
-  /*
-  const std::string password_file = "/etc/secrets/postgres-password";
-  const std::string password = ReadPasswordFromFile(password_file);
+  try {
+    rtype::MainServer<network::MyPacketType> game_server(tcp_port, udp_port);
+    Controller controller(game_server);
 
-  // Use the password in your database connection string
-  const std::string db_connection_string =
-      "postgresql://postgres:" + password +
-      "@my-postgres-postgresql.default.svc.cluster.local:5432/mydb";
-      */
+    controller.Start();
+  } catch (const std::exception& e) {
+    std::cerr << "An error occurred: " << e.what() << std::endl;
+    return EXIT_FAILURE;
+  }
 
-  rtype::MainServer<network::MyPacketType> game_server(4242, 4243, "postgresql://postgres:PiyYPnTAkE@my-postgres-postgresql.default.svc.cluster.local:5432/mydb");
-
- // rtype::MainServer<network::MyPacketType> game_server(4242, 4243, "postgresql://postgres:GFGsdqXILY@localhost:5432/mydb");
-
-  Controller controller(game_server);
-
-  controller.Start();
-
-  return 0;
+  return EXIT_SUCCESS;
 }

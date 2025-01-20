@@ -9,10 +9,10 @@ namespace rtype {
 
 LobbyScene::LobbyScene(const int lobby_id)
     : lobby_id_(lobby_id),
-      renderer_(ServiceLocator::Get<Renderer>()),
-      scene_manager_(ServiceLocator::Get<SceneManager>()),
-      event_queue_(ServiceLocator::Get<EventQueue<network::Packet<network::MyPacketType>>>()),
-      network_server_(ServiceLocator::Get<network::NetworkClient<network::MyPacketType>>()) {
+      renderer_(ServiceLocator::Get<Renderer>("renderer")),
+      scene_manager_(ServiceLocator::Get<SceneManager>("scene_manager")),
+      event_queue_(ServiceLocator::Get<EventQueue<network::Packet<network::MyPacketType>>>("event_queue")),
+      network_server_(ServiceLocator::Get<network::NetworkClient<network::MyPacketType>>("network_server")) {
   InitializeUI();
 }
 
@@ -338,7 +338,12 @@ void LobbyScene::HandleGameConnectionInfo(const network::Packet<network::MyPacke
   std::vector ports(std::begin(connection_info->ports), std::end(connection_info->ports));
   std::erase(ports, 0);
 
-  if (ip_address.empty() || ports.empty()) {
+  //if (ip_address.empty() || ports.empty()) {
+  //  std::cerr << "[LobbyScene][ERROR] Invalid game connection info received." << std::endl;
+  //  return;
+  //}
+
+  if (ports.empty()) {
     std::cerr << "[LobbyScene][ERROR] Invalid game connection info received." << std::endl;
     return;
   }

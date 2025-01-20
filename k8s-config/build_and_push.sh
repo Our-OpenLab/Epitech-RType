@@ -8,11 +8,11 @@ CYAN="\033[0;36m"
 RESET="\033[0m"
 
 # Variables
-# IMAGE_NAME="guillaumemichel1026/rtype-dev"
-IMAGE_NAME="guillaumemichel1026/rtype-test"
+IMAGE_NAME="guillaumemichel1026/rtype-dev"
+# IMAGE_NAME="guillaumemichel1026/rtype-test"
 IMAGE_TAG="latest"
-# DOCKERFILE_PATH="Dockerfile.dev" # Path to the Dockerfile
-DOCKERFILE_PATH="Dockerfile.test"
+DOCKERFILE_PATH="Dockerfile.dev" # Path to the Dockerfile
+# DOCKERFILE_PATH="Dockerfile.test"
 
 Build the Docker image
 echo -e "${YELLOW}Building the Docker image${RESET}"

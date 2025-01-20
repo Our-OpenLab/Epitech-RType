@@ -17,9 +17,10 @@ void GameNetworkServer<PacketType>::OnClientAccepted(
     const std::shared_ptr<TcpServerConnection<PacketType>>& connection) {
   std::cout << "[GameNetworkServer] Client accepted: " << connection->GetId() << std::endl;
 
-  // Publish an event to the EventQueue
-  // auto event = std::make_shared<int>(connection->GetId());
-  // event_queue_.Publish(EventType::ChatMessage, event);
+  Packet<PacketType> welcome_packet;
+  welcome_packet.header.type = PacketType::kWelcome;
+
+  connection->Send(welcome_packet);
 }
 
 template <typename PacketType>

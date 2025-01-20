@@ -51,13 +51,52 @@ class TcpClientConnection final : public TcpConnection<PacketType>,
         this->socket_, endpoints,
         [self, &connection_result](const std::error_code& ec, const asio::ip::tcp::endpoint&) {
           if (!ec) {
-            connection_result.set_value(true);
-            self->ReadHeader(self);
-          } else {
-            connection_result.set_value(false);
-            std::cerr << "[TCP Client] Connection error: " << ec.message() << std::endl;
-            self->Disconnect();
-          }
+                asio::async_read(
+                    self->socket_,
+                    asio::buffer(&self->incoming_packet_.header, sizeof(Header<PacketType>)),
+                    [self, &connection_result](const std::error_code& ec, std::size_t) {
+                      if (!ec) {
+                        connection_result.set_value(true);
+                        if (self->incoming_packet_.header.size > 0) {
+                          if (self->incoming_packet_.header.size > TcpConnection<PacketType>::kMaxBodySize) {
+                            std::cerr << "[TCP][ERROR] Invalid body size in header." << std::endl;
+                            self->Disconnect();
+                            return;
+                          }
+                          self->incoming_packet_.body.resize(self->incoming_packet_.header.size);
+                          self->ReadBody(self);
+                        } else {
+                          self->OnPacketReceived(std::move(self->incoming_packet_));
+                          self->ReadHeader(self);
+                        }
+                      } else {
+                        connection_result.set_value(false);
+                        std::cerr << "[TCP Client] Read error after connection: " << ec.message() << std::endl;
+                        self->Disconnect();
+                      }
+                    });
+              }
+
+
+
+      //      asio::async_read(
+      //          self->socket_,
+      //          asio::buffer(&self->incoming_packet_.header, sizeof(Header<PacketType>)),
+      //          [self, &connection_result](const std::error_code& read_ec, std::size_t) {
+      //            if (!read_ec) {
+      //              connection_result.set_value(true);
+      //                           self->ReadHeader(self);
+      //            } else {
+      //              connection_result.set_value(false);
+      //              std::cerr << "[TCP Client] Read error after connection: " << read_ec.message() << std::endl;
+      //              self->Disconnect();
+      //            }
+      //          });
+       //    else {
+       //     connection_result.set_value(false);
+       //     std::cerr << "[TCP Client] Connection error: " << ec.message() << std::endl;
+       //     self->Disconnect();
+       //   }
         });
   }
 

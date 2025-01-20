@@ -28,7 +28,6 @@ public:
   void Update(float delta_time) override;
   void Render() override;
   void HandleInput(const SDL_Event& event) override;
-  void ConnectToServer();
 
   [[nodiscard]] uint8_t GetClientId() const { return client_id_; }
   void SetClientId(const uint8_t id) { client_id_ = id; }
@@ -47,13 +46,12 @@ private:
   bool is_connected_;
   uint8_t client_id_{0};
 
-
-  TTF_Font* font_{nullptr};
-  std::unique_ptr<Text> connection_status_text_;
   Renderer& renderer_;
   SceneManager& scene_manager_;
   EventQueue<network::Packet<network::MyPacketType>>& event_queue_;
+
   network::NetworkClient<network::MyPacketType>& network_server_;
+  network::NetworkClient<network::MyPacketType>& game_server_;
 
   ScreenManager screen_manager_{};
   InputManager input_manager_;

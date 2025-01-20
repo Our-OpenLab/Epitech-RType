@@ -8,6 +8,7 @@ spec:
   externalTrafficPolicy: Local
   selector:
     app: server
+    instance: server-pod
   ports:
     - name: tcp-port
       protocol: TCP

@@ -12,17 +12,17 @@ MainMenuScene::MainMenuScene()
     : lobby_map_(std::make_shared<std::unordered_map<
                      int, std::pair<std::unique_ptr<Text>,
                                     std::unique_ptr<TextButton>>>>()),
-      renderer_(ServiceLocator::Get<Renderer>()),
-      scene_manager_(ServiceLocator::Get<SceneManager>()),
+      renderer_(ServiceLocator::Get<Renderer>("renderer")),
+      scene_manager_(ServiceLocator::Get<SceneManager>("scene_manager")),
       event_queue_(ServiceLocator::Get<
-                   EventQueue<network::Packet<network::MyPacketType>>>()),
+                   EventQueue<network::Packet<network::MyPacketType>>>("event_queue")),
       network_server_(ServiceLocator::Get<
-                      network::NetworkClient<network::MyPacketType>>()) {
-  if (ServiceLocator::Has<ChatOverlay>()) {
-    chat_overlay_ = ServiceLocator::GetShared<ChatOverlay>();
+                      network::NetworkClient<network::MyPacketType>>("network_server")) {
+  if (ServiceLocator::Has<ChatOverlay>("chat_overlay")) {
+    chat_overlay_ = ServiceLocator::GetShared<ChatOverlay>("chat_overlay");
   } else {
     chat_overlay_ = std::make_shared<ChatOverlay>();
-    ServiceLocator::Provide(chat_overlay_);
+    ServiceLocator::Provide("chat_overlay", chat_overlay_);
   }
 
   InitializeUI();

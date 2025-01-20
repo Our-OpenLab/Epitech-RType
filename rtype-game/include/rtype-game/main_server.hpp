@@ -41,9 +41,8 @@ public:
    *
    * @param tcp_port Port for TCP communication.
    * @param udp_port Port for UDP communication.
-   * @param db_connection_string Database connection string for the ServiceContainer.
    */
-  explicit MainServer(uint16_t tcp_port, uint16_t udp_port, const std::string& db_connection_string);
+  explicit MainServer(uint16_t tcp_port, uint16_t udp_port);
 
   /**
    * @brief Destructor for MainServer.
