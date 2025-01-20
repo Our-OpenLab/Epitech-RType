@@ -123,6 +123,10 @@ class NetworkClient {
       udp_connection_->Close();
     }
 
+    if (tcp_connection_) {
+      tcp_connection_->Disconnect();
+    }
+
     io_context_.stop();
 
     if (context_thread_.joinable()) {
@@ -203,6 +207,20 @@ class NetworkClient {
     }
     return 0;
   }
+
+  /**
+   * @brief Gets a reference to the internal ASIO I/O context.
+   *
+   * This method exposes the internal `asio::io_context` instance, which can
+   * be used for additional asynchronous operations or integration with
+   * external components.
+   *
+   * @return A reference to the internal `asio::io_context`.
+   */
+  [[nodiscard]] asio::io_context& GetIoContext() {
+    return io_context_;
+  }
+
 
  private:
   asio::io_context io_context_;  ///< ASIO I/O context for handling asynchronous operations.

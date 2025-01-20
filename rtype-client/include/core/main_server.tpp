@@ -5,6 +5,7 @@
 
 #include "my_packet_types.hpp"
 #include "packet_factory.hpp"
+#include "scenes/game_scene.hpp"
 
 namespace rtype {
 
@@ -30,6 +31,16 @@ bool MainServer<PacketType>::Start(const std::string& host, const std::string& s
     is_running_ = true;
 
     scene_manager_->PushScene(std::make_unique<LoginScene>());
+    //try {
+    //    const int tcp_port = std::stoi(service);
+
+    //    scene_manager_->PushScene(std::make_unique<GameScene>(host, std::vector{tcp_port, static_cast<int>(udp_port)}));
+
+    //    std::cout << "[MainServer][INFO] Successfully transitioned to GameScene." << std::endl;
+    //} catch (const std::exception& e) {
+    //    std::cerr << "[MainServer][ERROR] Failed to start GameScene: " << e.what() << std::endl;
+    //    return false;
+    //}
 
     Run();
 
@@ -65,7 +76,7 @@ void MainServer<PacketType>::Run() {
     double accumulator = 0.0;
 
     // -- For sending periodic pings
-    constexpr double kPingIntervalMs = 50.0;   // send ping every 1 second
+    constexpr double kPingIntervalMs = 1000.0;
     double ping_accumulator = 0.0;
 
     auto previous_time = Clock::now();
@@ -122,9 +133,7 @@ void MainServer<PacketType>::Run() {
         if (ping_accumulator >= kPingIntervalMs) {
             ping_accumulator -= kPingIntervalMs;
 
-            // Actually send a ping packet to clients
-            // e.g. SendPingToAllClients();
-            // std::cout << "[MainServer] Sending ping..." << std::endl;
+            SendPing();
         }
 
         // If using a job system, wait for jobs to complete:
@@ -138,11 +147,11 @@ void MainServer<PacketType>::Run() {
 
         renderer_->Clear();
         scene_manager_->Render();
-        SDL_SetRenderDrawColor(renderer_->GetSDLRenderer(), 0, 0, 0, 255);
+        //SDL_SetRenderDrawColor(renderer_->GetSDLRenderer(), 0, 0, 0, 255);
         renderer_->Present();
 
         // 5) Optional: basic frame pacing to avoid 100% CPU usage
-        SDL_Delay(5);
+        //SDL_Delay(5);
         //std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
@@ -166,13 +175,10 @@ void MainServer<PacketType>::SendPing() const
 
     // Create a ping packet with your PacketFactory.
     // The second parameter is the payload (timestamp).
-    auto ping_packet = network::PacketFactory<network::MyPacketType>::CreatePacket(
-        network::MyPacketType::kPing,
-        timestamp_ms
-    );
+    auto ping_packet = network::CreatePingPacket<PacketType>(timestamp_ms);
 
     // Send it via UDP. (Could also be TCP, depending on your protocol.)
-    network_server_->SendUdp(std::move(ping_packet));
+    network_server_->SendTcp(std::move(ping_packet));
 
     // Log or debug output
     // std::cout << "[Client][INFO] Ping sent with timestamp: " << timestamp_ms << " ms" << std::endl;

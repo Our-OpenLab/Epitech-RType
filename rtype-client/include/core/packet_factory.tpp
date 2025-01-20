@@ -180,6 +180,61 @@ std::optional<Packet<PacketType>> CreateGetLobbyListPacket(
   );
 }
 
+template <typename PacketType>
+Packet<PacketType> CreatePingPacket(const std::uint32_t timestamp) {
+  packets::PingPacket ping = {timestamp};
+
+  return PacketFactory<PacketType>::CreatePacket(
+      PacketType::kPing,
+      std::span(reinterpret_cast<uint8_t*>(&ping), sizeof(ping))
+  );
+}
+
+template <typename PacketType>
+std::optional<Packet<PacketType>> CreateUdpPortPacket(const uint16_t udp_port) {
+  packets::UdpPortPacket buffer {};
+  buffer.udp_port = udp_port;
+
+  return PacketFactory<PacketType>::CreatePacket(
+      PacketType::kUdpPort,
+      std::span(reinterpret_cast<uint8_t*>(&buffer), sizeof(buffer))
+  );
+}
+
+template <typename PacketType>
+std::optional<Packet<PacketType>> CreatePlayerInputPacket(const u_int8_t player_id, const uint16_t actions, const float dir_x, const float dir_y) {
+  packets::PlayerInputPacket buffer {
+    player_id,
+    actions,
+    dir_x,
+    dir_y
+  };
+
+  return PacketFactory<PacketType>::CreatePacket(
+      PacketType::kPlayerInput,
+      std::span(reinterpret_cast<uint8_t*>(&buffer), sizeof(buffer))
+  );
+}
+
+template <typename PacketType>
+std::optional<Packet<PacketType>> CreateUdpPortPacket(const uint16_t udp_port, const std::string& private_ip) {
+  if (private_ip.size() > sizeof(packets::UdpPortPacket::private_ip)) {
+    std::cerr << "[CreateUdpPortPacket][ERROR] Private IP address is too long." << std::endl;
+    return std::nullopt;
+  }
+
+  packets::UdpPortPacket buffer {};
+  buffer.udp_port = udp_port;
+
+  const size_t copy_size = std::min(private_ip.size(), sizeof(buffer.private_ip));
+  std::memcpy(buffer.private_ip, private_ip.data(), copy_size);
+
+  return PacketFactory<PacketType>::CreatePacket(
+      PacketType::kUdpPort,
+      std::span(reinterpret_cast<uint8_t*>(&buffer), sizeof(buffer))
+  );
+}
+
 
 }  // namespace network
 

@@ -254,6 +254,30 @@ class NetworkServer
   }
 
   /**
+   * @brief Registers a UDP endpoint for a given TCP connection, including private IP.
+   * @param connection The TCP connection to link with the UDP endpoint.
+   * @param udp_port The client's UDP port.
+   * @param private_ip The client's private IP address.
+   */
+    virtual void RegisterUdpEndpoint(
+        const std::shared_ptr<TcpServerConnection<PacketType>>& connection,
+      const uint16_t udp_port, const std::string& private_ip) {
+      try {
+        asio::ip::udp::endpoint udp_endpoint(asio::ip::make_address(private_ip), udp_port);
+
+        // Lie le TCP à l'UDP.
+        udp_to_tcp_map_[udp_endpoint] = connection;
+        tcp_to_udp_map_[connection] = udp_endpoint;
+
+        std::cout << "[Server][INFO] Registered UDP endpoint for connection ID "
+                  << connection->GetId() << " at " << udp_endpoint.address().to_string()
+                  << ":" << udp_endpoint.port() << std::endl;
+      } catch (const std::exception& e) {
+        std::cerr << "[Server][ERROR] Failed to register UDP endpoint: " << e.what() << std::endl;
+      }
+    }
+
+  /**
    * @brief Pops the next received packet from the internal queue (if any).
    * @return std::optional containing the OwnedPacket if available, otherwise empty.
    */

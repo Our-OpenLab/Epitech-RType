@@ -54,6 +54,15 @@ template <typename PacketType>
 std::optional<Packet<PacketType>> CreateGetLobbyListPacket(
 std::uint32_t offset, std::uint32_t limit, const std::string& search_term);
 
+template <typename PacketType>
+Packet<PacketType> CreatePingPacket(std::uint32_t timestamp);
+
+template <typename PacketType>
+std::optional<Packet<PacketType>> CreateUdpPortPacket(uint16_t udp_port);
+
+template <typename PacketType>
+std::optional<Packet<PacketType>> CreatePlayerInputPacket(u_int8_t player_id, uint16_t actions, float dir_x, float dir_y);
+
 }  // namespace network
 
 #include "packet_factory.tpp"

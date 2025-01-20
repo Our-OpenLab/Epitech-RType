@@ -14,6 +14,7 @@ endif()
 set(SOURCES
         src/main.cpp
 
+        src/core/game_state.cpp
         src/core/renderer.cpp
 
         src/scenes/login_scene.cpp
@@ -41,6 +42,11 @@ set(HEADERS
         include/core/resource_manager.hpp
         include/core/service_locator.hpp
         include/core/signal_handler.hpp
+        include/core/game_state.hpp
+
+        include/core/input_manager.hpp
+        include/core/screen_manager.hpp
+        include/core/player_actions.hpp
 
         include/scenes/scene.hpp
         include/scenes/scene_manager.hpp
@@ -58,6 +64,8 @@ set(HEADERS
         include/ui/text_box.hpp
         include/ui/text_link.hpp
         include/ui/chat_overlay.hpp
+
+        include/engine/ecs_alias.hpp
 )
 
 # Define the executable
@@ -68,6 +76,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE include)
 
 # Add network_lib library
 target_link_libraries(${PROJECT_NAME} PRIVATE network_lib)
+
+# Add ecs_lib library
+target_link_libraries(${PROJECT_NAME} PRIVATE ecs_lib)
 
 # Add cameron314/concurrentqueue dependency for thread-safe queues
 find_package(concurrentqueue REQUIRED)
@@ -84,6 +95,18 @@ target_link_libraries(${PROJECT_NAME} PRIVATE SDL2::SDL2)
 # Add SDL2_ttf dependency for rendering text
 find_package(SDL2_ttf)
 target_link_libraries(${PROJECT_NAME} PRIVATE sdl_ttf::sdl_ttf)
+
+# Add OpenGL dependency for rendering
+find_package(OpenGL REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE OpenGL::GL)
+
+# Add GLEW dependency for OpenGL
+find_package(GLEW REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE GLEW::GLEW)
+
+# Add GLM dependency for OpenGL
+find_package(GLM REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE glm::glm)
 
 # Set the output directory for the binary
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")

@@ -67,7 +67,9 @@ echo -e "${GREEN}Application configured and built successfully.${RESET}"
 
 # Step 4: Run the application
 echo -e "${YELLOW}Running the application in the pod...${RESET}"
+
 if ! kubectl exec "$POD_NAME" -- bash -c "valgrind --leak-check=full /app/build/Release/bin/RTypeCore"; then
+#if ! kubectl exec "$POD_NAME" -- bash -c "valgrind --leak-check=full /app/build/Release/bin/RTypeGame"; then
     echo -e "${RED}Failed to run the application.${RESET}"
     exit 1
 fi

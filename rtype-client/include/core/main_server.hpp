@@ -47,12 +47,25 @@ public:
   : network_server_(std::make_shared<network::NetworkClient<PacketType>>())
   , event_queue_(std::make_shared<PacketEventQueue>())
   , message_dispatcher_(*event_queue_)
-  , renderer_(std::make_shared<Renderer>("RType Client", 1280, 720))
+  , renderer_(std::make_shared<Renderer>(1280, 960, "RType Client"))
   , scene_manager_(std::make_shared<SceneManager>()) {
     ServiceLocator::Provide(renderer_);
     ServiceLocator::Provide(event_queue_);
     ServiceLocator::Provide(network_server_);
     ServiceLocator::Provide(scene_manager_);
+
+    event_queue_->Subscribe(EventType::Pong, [this](const network::Packet<network::MyPacketType>& packet) {
+      if (packet.body.size() != sizeof(network::packets::PingPacket)) {
+          std::cerr << "[Client][ERROR] Invalid PingPacket size received." << std::endl;
+          return;
+      }
+
+      const auto* ping_packet = reinterpret_cast<const network::packets::PingPacket*>(packet.body.data());
+
+      const uint32_t timestamp = ping_packet->timestamp;
+
+      // std::cout << "[Client][INFO] Received ping with timestamp: " << timestamp << " ms" << std::endl;
+    });
   }
 
 
@@ -140,7 +153,7 @@ private:
   void SendPing() const;
 
   //GameState game_state_;  ///< Manages the local game state.
-  std::shared_ptr<network::NetworkClient<PacketType>> network_server_{};  ///< Handles all network communication.
+  std::shared_ptr<network::NetworkClient<PacketType>> network_server_;  ///< Handles all network communication.
   std::shared_ptr<PacketEventQueue> event_queue_;  ///< Centralized queue for managing asynchronous events.
   network::MessageDispatcher<PacketType> message_dispatcher_;  ///< Routes incoming packets to their appropriate handlers.
   std::shared_ptr<Renderer> renderer_;  ///< Manages the rendering context.

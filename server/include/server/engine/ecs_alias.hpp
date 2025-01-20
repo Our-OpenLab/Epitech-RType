@@ -2,7 +2,7 @@
 #define ECS_ALIAS_HPP_
 
 #include <ecs/registry.hpp>
-#include <shared/components.hpp>
+#include "core/components.hpp"
 
 using Registry = ecs::Registry<Position, Velocity, Health, ServerPlayer, Actions, DirtyFlag, Projectile, LastShotTime, AIState, PatrolPath, Aggro, Flocking, Enemy, Target>;
 

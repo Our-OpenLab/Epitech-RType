@@ -17,8 +17,6 @@ MessageDispatcher<PacketType>::MessageDispatcher(
 template <typename PacketType>
 void MessageDispatcher<PacketType>::Dispatch(Packet<PacketType>&& packet) const {
   const auto index = static_cast<size_t>(packet.header.type);
-  std::cout << "[MessageDispatcher] Dispatching packet: "
-            << static_cast<size_t>(packet.header.type) << std::endl;
   if (index < handlers_.size() && handlers_[index]) {
     handlers_[index](std::move(packet));
   } else {
@@ -120,6 +118,27 @@ void MessageDispatcher<PacketType>::InitializeHandlers() {
     [this](Packet<PacketType>&& packet) {
       event_queue_.Publish(rtype::EventType::GameConnectionInfo, std::move(packet));
     };
+
+  handlers_[static_cast<size_t>(PacketType::kPong)] =
+    [this](Packet<PacketType>&& packet) {
+      event_queue_.Publish(rtype::EventType::Pong, std::move(packet));
+    };
+
+  handlers_[static_cast<size_t>(PacketType::kPlayerAssign)] = [this](const Packet<PacketType>&& packet) {
+    event_queue_.Publish(rtype::EventType::PlayerAssign, std::move(packet));
+  };
+
+  handlers_[static_cast<size_t>(PacketType::kUpdatePlayers)] = [this](const Packet<PacketType>&& packet) {
+    event_queue_.Publish(rtype::EventType::UpdatePlayers, std::move(packet));
+  };
+
+  handlers_[static_cast<size_t>(PacketType::kUpdateProjectiles)] = [this](const Packet<PacketType>&& packet) {
+    event_queue_.Publish(rtype::EventType::UpdateProjectiles, std::move(packet));
+  };
+
+  handlers_[static_cast<size_t>(PacketType::kUpdateEnemies)] = [this](const Packet<PacketType>&& packet) {
+    event_queue_.Publish(rtype::EventType::UpdateEnemies, std::move(packet));
+  };
 }
 
 }  // namespace network

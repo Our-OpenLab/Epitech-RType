@@ -1021,7 +1021,7 @@ void Renderer::DrawStarguy(const glm::vec2& map_position, const glm::vec2& size)
     static_cast<float>(width_), static_cast<float>(height_),
     static_cast<float>(width_), 0.0f,
     0.0f, 0.0f
-};
+  };
 
   glBindVertexArray(vao_);
   glBindBuffer(GL_ARRAY_BUFFER, vbo_);

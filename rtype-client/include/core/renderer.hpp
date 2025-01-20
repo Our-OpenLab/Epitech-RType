@@ -1,70 +1,79 @@
 #ifndef RENDERER_HPP
 #define RENDERER_HPP
 
-#include <string>
 #include <SDL2/SDL.h>
+#include <GL/glew.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <string>
+#include <stdexcept>
+#include <iostream>
 
-/**
- * @brief Simple SDL-based renderer manager.
- *
- * This class handles:
- *  - SDL initialization and shutdown.
- *  - Creation of an SDL window.
- *  - Creation of an SDL_Renderer for 2D drawing.
- *  - Basic methods for clearing and presenting the screen.
- */
+struct Camera {
+  glm::vec2 position{0.0f, 0.0f};
+  glm::mat4 projection_matrix{1.0f};
+};
+
 class Renderer {
 public:
-  /**
-   * @brief Constructor that initializes SDL, creates a window and a renderer.
-   *
-   * @param title  The window title.
-   * @param width  The window width in pixels.
-   * @param height The window height in pixels.
-   */
-  Renderer(const std::string& title, int width, int height);
+  enum class RendererType { SDL, OpenGL };
 
-  /**
-   * @brief Destructor that cleans up the SDL objects and quits SDL.
-   */
+  Renderer(int width, int height, const std::string& title, RendererType type = RendererType::SDL);
   ~Renderer();
 
-  /**
-     * @brief Clears the render target with a default color.
-     */
-  void Clear();
+  void SwitchToSDL(const std::string& title);
+  void SwitchToOpenGL(const std::string& title);
 
-  /**
-     * @brief Presents the rendered scene on the window.
-     */
-  void Present();
+  // General rendering
+  void Clear() const;
+  void Present() const;
 
-  /**
-     * @brief Sets the draw color for subsequent rendering operations.
-     *
-     * @param r Red component   [0..255]
-     * @param g Green component [0..255]
-     * @param b Blue component  [0..255]
-     * @param a Alpha component [0..255]
-     */
-  void SetDrawColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+  // SDL-specific functions
+  void SetDrawColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a) const;
+  SDL_Renderer* GetSDLRenderer() const { return sdlRenderer_; }
 
-  /**
-   * @brief Returns the raw SDL_Renderer pointer for more advanced operations.
-   */
-  SDL_Renderer* GetSDLRenderer() const { return sdlRenderer; }
+  // OpenGL-specific functions
+  void UpdateCamera(const std::pair<float, float>& position);
 
-  /**
-     * @brief Returns the raw SDL_Window pointer for more advanced operations.
-     */
-  SDL_Window* GetWindow() const { return window; }
+  void DrawVisibleVerticalBar(const glm::vec2& position, const glm::vec2& size) const;
+  void DrawVisibleHorizontalBar(const glm::vec2& position, const glm::vec2& size) const;
+  void DrawStarguy(const glm::vec2& position, const glm::vec2& size) const;
+  void DrawProjectile(const glm::vec2& position, const glm::vec2& size) const;
+  void DrawEnemy(const glm::vec2& position, const glm::vec2& size) const;
 
 private:
-  SDL_Window*   window;      ///< The main application window.
-  SDL_Renderer* sdlRenderer; ///< The hardware-accelerated 2D renderer.
+  RendererType currentRenderer_;
 
-  int windowWidth;           ///< Width of the window in pixels.
-  int windowHeight;          ///< Height of the window in pixels.
+  GLuint neon_bar_horizontal_program_{0};
+  GLuint neon_bar_vertical_program_{0};
+  GLuint starguy_program_{0};
+  GLuint projectile_program_{0};
+  GLuint enemy_program_{0};
+
+  // SDL components
+  SDL_Window* window_{nullptr};
+  SDL_Renderer* sdlRenderer_{nullptr};
+  SDL_GLContext gl_context_{nullptr};
+
+  // OpenGL components
+  GLuint vao_{0};
+  GLuint vbo_{0};
+  GLuint shader_program_{0};
+
+  int width_;
+  int height_;
+
+  Camera camera_;
+
+  void InitSDL(const std::string& title);
+  void InitOpenGL(const std::string& title);
+  void CleanupSDL();
+  void CleanupOpenGL();
+
+  GLuint LoadShaders(const char* vertex_source, const char* fragment_source);
+  void CheckShaderCompileError(GLuint shader);
+  void CheckProgramLinkError(GLuint program);
 };
 
 #endif // RENDERER_HPP

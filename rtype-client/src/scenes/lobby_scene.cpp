@@ -121,12 +121,17 @@ void LobbyScene::HandlePlayerReadyResponse(const network::Packet<network::MyPack
   }
 }
 
-
 void LobbyScene::HandleLeaveLobbyResponse(const network::Packet<network::MyPacketType>& packet) {
-  if (const auto response_code =
-          network::PacketFactory<network::MyPacketType>::ExtractData<int>(
-              packet);
-      response_code == 200) {
+  const auto response_code_opt = network::PacketFactory<network::MyPacketType>::ExtractData<int>(packet);
+
+  if (!response_code_opt) {
+    std::cerr << "[LobbyScene][ERROR] Failed to extract response code from packet." << std::endl;
+    return;
+  }
+
+  const int response_code = *response_code_opt;
+
+  if (response_code == 200) {
     std::cout << "[LobbyScene] Successfully left the lobby." << std::endl;
     scene_manager_.ReplaceScene(std::make_unique<MainMenuScene>());
   } else {

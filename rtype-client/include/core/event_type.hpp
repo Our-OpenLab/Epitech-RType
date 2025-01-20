@@ -50,6 +50,12 @@ enum class EventType : size_t {
   LobbiesResponse,
   JoinLobbyResponse,
   GetLobbyListResponse,
+  UpdateProjectiles,
+  Ping,
+  Pong,
+  PlayerAssign,
+  UpdatePlayers,
+  UpdateEnemies,
   // Must always be the last entry
   MaxTypes
 };

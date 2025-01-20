@@ -201,40 +201,45 @@ class PacketFactory {
   }
 
   /**
-   * @brief Extracts a single data element from a packet.
-   *
-   * @tparam T Type of the data. Must be trivially copyable.
-   * @param packet The packet to extract data from.
-   * @return Extracted data.
-   * @throws std::out_of_range If the packet size is invalid.
-   */
+ * @brief Extracts a single data element from a packet.
+ *
+ * @tparam T Type of the data. Must be trivially copyable.
+ * @param packet The packet to extract data from.
+ * @return An optional containing the extracted data, or std::nullopt if the size is invalid.
+ */
   template <typename T>
-  static T ExtractData(const Packet<PacketType>& packet) {
+  static std::optional<T> ExtractData(const Packet<PacketType>& packet) {
     static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+
     if (packet.body.size() != sizeof(T)) {
-      throw std::out_of_range("Packet body size does not match expected size");
+      return std::nullopt;
     }
+
     return *reinterpret_cast<const T*>(packet.body.data());
   }
 
+
   /**
-   * @brief Extracts an array of data elements from a packet.
-   *
-   * @tparam T Type of the data. Must be trivially copyable.
-   * @param packet The packet to extract data from.
-   * @return Extracted data as a vector.
-   * @throws std::out_of_range If the packet size is invalid.
-   */
+ * @brief Extracts an array of data elements from a packet.
+ *
+ * @tparam T Type of the data. Must be trivially copyable.
+ * @param packet The packet to extract data from.
+ * @return An optional vector containing the extracted data, or std::nullopt if the size is invalid.
+ */
   template <typename T>
-  static std::vector<T> ExtractDataArray(const Packet<PacketType>& packet) {
+  static std::optional<std::vector<T>> ExtractDataArray(const Packet<PacketType>& packet) {
     static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+
     if (packet.body.size() % sizeof(T) != 0) {
-      throw std::out_of_range("Packet body size is not a multiple of the expected size");
+      return std::nullopt;
     }
+
     const size_t count = packet.body.size() / sizeof(T);
     const auto* raw_data = reinterpret_cast<const T*>(packet.body.data());
+
     return std::vector<T>(raw_data, raw_data + count);
   }
+
 };
 
 }  // namespace network

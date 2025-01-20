@@ -20,3 +20,4 @@ add_subdirectory(shared)
 
 add_subdirectory(rtype-core)
 add_subdirectory(rtype-client)
+add_subdirectory(rtype-game)

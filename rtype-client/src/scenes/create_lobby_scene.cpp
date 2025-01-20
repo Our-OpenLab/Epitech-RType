@@ -130,7 +130,6 @@ void CreateLobbyScene::Enter() {
 }
 
 void CreateLobbyScene::HandleCreateLobbyResponse(const network::packets::CreateLobbyResponsePacket& packet) {
-  std::cout << "here"   << std::endl;
   if (packet.status_code == 200) {
     status_text_->SetContent("Lobby created successfully!");
     status_text_->SetColor(SDL_Color{0, 255, 0, 255});
